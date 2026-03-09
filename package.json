@@ -10,5 +10,8 @@
     "build": "npm --workspace client run build",
     "preview": "npm --workspace client run preview",
     "lint": "npm --workspace client run lint"
+  },
+  "dependencies": {
+    "express": "^5.2.1"
   }
 }
