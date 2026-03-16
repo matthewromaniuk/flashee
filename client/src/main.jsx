@@ -1,10 +1,28 @@
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
-import './index.css'
+import React from 'react'
+import ReactDOM from 'react-dom/client'
 import App from './App.jsx'
+import 'antd/dist/reset.css'
+import { ConfigProvider, theme } from 'antd'
 
-createRoot(document.getElementById('root')).render(
-  <StrictMode>
-    <App />
-  </StrictMode>,
+ReactDOM.createRoot(document.getElementById('root')).render(
+  <React.StrictMode>
+    <ConfigProvider
+      theme={{
+        algorithm: theme.darkAlgorithm,
+        token: {
+          colorText: '#fff',
+          colorPrimary: '#9972cf',
+          colorSuccess: '#51CF66',
+          colorWarning: '#FFD93D',
+          colorError: '#FA5252',
+          colorInfo: '#4DABF7',
+          colorBgBase: "#000000",
+          borderRadius: 12,
+        }
+      }}
+    >
+      <App />
+    </ConfigProvider>
+
+  </React.StrictMode>,
 )
