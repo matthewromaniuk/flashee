@@ -1,24 +1,20 @@
-import React, { useState } from 'react';
-import { BrowserRouter, Routes, Route, useNavigate} from 'react-router-dom';
-import {
-  MenuFoldOutlined,
-  MenuUnfoldOutlined,
-} from '@ant-design/icons';
+import { useNavigate} from 'react-router-dom';
 import LogoName from "../components/logoName";
 import { Button, Layout, Menu, theme, Flex} from 'antd';
-const { Header, Sider, Content, Footer } = Layout;
+const { Header, Content, Footer } = Layout;
 const home = () => {
-  const [collapsed, setCollapsed] = useState(false);
   const {
-    token: { colorBgContainer, borderRadiusLG },
+    token: { colorBgContainer, borderRadiusLG, headerBg, footerBg },
   } = theme.useToken();
   const navigate = useNavigate();
   return (
     <Layout>
       <Layout>
-        <Header style={{ padding: 0, background: colorBgContainer, paddingRight: 15, paddingLeft: 5}}>
+        <Header style={{ background: headerBg, padding: 0, paddingRight: 15, paddingLeft: 5}}>
           <Flex align="center" style={{ width: '100%'}}>
-            <LogoName width={150} onClick={() => navigate('/home')}/>
+            <div style={{cursor: 'pointer'}} onClick={() => navigate('/')}>
+              <LogoName width={150}/>
+            </div>
             <div style={{ flex: 1}} /> {}
             <Flex gap="small">
               <Button type="default" onClick={() => navigate('/signin')}>Sign In</Button>
@@ -29,16 +25,20 @@ const home = () => {
         <Content
           style={{
             margin: '24px 16px',
-            padding: 24,
-            minHeight: 280,
+            padding: 30,
+            minHeight: 510,
             background: colorBgContainer,
             borderRadius: borderRadiusLG,
           }}
         >
-          Content stuff
+          <Flex justify='center'>
+            Welcome to Flashee
+          </Flex>
         </Content>
-        <Footer>
-          footer stuff
+        <Footer style={{ background: footerBg}}>
+          <Flex justify='center'>
+            footer stuff
+          </Flex>
         </Footer>
       </Layout>
     </Layout>

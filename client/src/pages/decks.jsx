@@ -1,12 +1,13 @@
-import { useState } from 'react';
 import Navbar from "../components/navbar";
+import UploadButton from "../components/UploadButton";
 import { useNavigate } from 'react-router-dom';
-import { Button, Layout, Menu, theme, Flex} from 'antd';
+import { Button, Layout, theme, Flex, message, Upload} from 'antd';
 import LogoName from "../components/logoName";
+import Flashcard from '../components/flashcard';
 const { Header, Sider, Content, Footer } = Layout;
-const dashboard = () => {
+
+const decks = () => {
   const navigate = useNavigate();
-  const [collapsed, setCollapsed] = useState(false);
   const {
     token: { colorBgContainer, borderRadiusLG, headerBg, footerBg },
   } = theme.useToken();
@@ -36,6 +37,7 @@ const dashboard = () => {
             borderRadius: borderRadiusLG,
           }}
         >
+            <UploadButton />
           Content
         </Content>
       </Layout>
@@ -45,4 +47,4 @@ const dashboard = () => {
     </Layout>
   );
 };
-export default dashboard;
+export default decks;

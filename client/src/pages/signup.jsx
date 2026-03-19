@@ -1,13 +1,13 @@
-import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button, Checkbox, Form, Input, Layout, theme } from 'antd';
+import LogoName from "../components/logoName";
+import { Button, Checkbox, Form, Input, Layout, Flex, theme } from 'antd';
 
-const { Content } = Layout;
+const { Header, Content } = Layout;
 
 const SignUp = () => {
   const navigate = useNavigate();
   const {
-    token: { colorBgContainer, borderRadiusLG },
+    token: { colorBgContainer, borderRadiusLG, headerBg },
   } = theme.useToken();
 
   const onFinish = (values) => {
@@ -19,11 +19,23 @@ const SignUp = () => {
   };
 
   return (
-    <Layout style={{ minHeight: '100vh', padding: '24px'}}>
+    <Layout style={{ minHeight: '100vh'}}>
+      <Header style={{ background: headerBg, padding: 0, paddingRight: 15, paddingLeft: 5}}>
+          <Flex align="center" style={{ width: '100%'}}>
+            <div style={{cursor: 'pointer'}} onClick={() => navigate('/')}>
+              <LogoName width={150}/>
+            </div>
+            <div style={{ flex: 1}} /> {}
+            <Flex gap="small">
+              <Button type="default" onClick={() => navigate('/signin')}>Sign In</Button>
+              <Button type="primary" onClick={() => navigate('/signup')}>Sign Up</Button>
+            </Flex>
+          </Flex>
+        </Header>
       <Content
         style={{
-          padding: 24,
-          margin: 0,
+          padding: 60,
+          margin: 10,
           minHeight: 280,
           background: colorBgContainer,
           borderRadius: borderRadiusLG,

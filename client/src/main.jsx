@@ -16,8 +16,10 @@ ReactDOM.createRoot(document.getElementById('root')).render(
           colorWarning: '#FFD93D',
           colorError: '#FA5252',
           colorInfo: '#4DABF7',
-          colorBgBase: "#000000",
+          colorBgBase: "#563866",
           borderRadius: 12,
+          footerBg: "#3c1751",
+          headerBg: "#24172c",
         }
       }}
     >

@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Menu } from "antd";
-import { HomeOutlined, UserOutlined } from "@ant-design/icons";
-import { NavLink } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import { HomeOutlined, SwitcherOutlined } from "@ant-design/icons";
 
 const items = [
     {
@@ -11,19 +11,27 @@ const items = [
     },
     {
       key: "2",
-      label: "Profile",
-    },
-    {
-      key: "3",
-      label: "Log Out",
+      icon: <SwitcherOutlined />,
+      label: "Decks",
     },
 ];
 
 const navbar = () => {
   const [current, setCurrent] = useState('Home');
+  const navigate = useNavigate();
   const onClick = e => {
     console.log('click ', e);
     setCurrent(e.key);
+    switch(e.key) {
+      case '1':
+        navigate('/dashboard');
+        break;
+      case '2':
+        navigate('/decks');
+        break;
+      default:
+        break;
+    }
   };
   return <Menu onClick={onClick} selectedKeys={[current]} mode="vertical" items={items} />;
 };
