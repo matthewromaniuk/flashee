@@ -7,7 +7,6 @@ import {
   createDeck,
   createCardset,
   deleteCardset,
-  getCardsetsByUserId,
   getCardsetsByUserEmail,
   updateCardset,
 } from './controllers/cardsetController';
@@ -37,8 +36,7 @@ authRouter.post('/sign-up', signUp);
 authRouter.post('/sign-in', signIn);
 //auth functions
 
-cardsetRouter.get('/', getCardsetsByUserEmail);
-cardsetRouter.get('/user/:userId', getCardsetsByUserId);
+cardsetRouter.get('/user/:userId', getCardsetsByUserEmail);
 cardsetRouter.post('/decks', createDeck);
 cardsetRouter.post('/', createCardset);
 cardsetRouter.patch('/:id', updateCardset);

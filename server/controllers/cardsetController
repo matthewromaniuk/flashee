@@ -3,29 +3,6 @@ import { generateInt64Id } from '../lib/int64Id.js'
 import { canWrite, getRequesterEmail, getCardsetRole, isOwner } from '../lib/cardsetPermissions.js'
 
 export async function getCardsetsByUserEmail(req, res) {
-	const email = req.query.email
-
-	if (!email || typeof email !== 'string') {
-		return res.status(400).json({ error: 'Query parameter "email" is required' })
-	}
-
-	const { data, error } = await supabase
-		.from('card_user')
-		.select('role, cardset:cardset_id(*)')
-		.eq('user_email', email)
-
-	if (error) {
-		return res.status(500).json({ error: error.message })
-	}
-
-	const cardsets = (data ?? [])
-		.filter((entry) => entry.cardset)
-		.map((entry) => ({ ...entry.cardset, role: entry.role }))
-
-	return res.status(200).json({ cardsets })
-}
-
-export async function getCardsetsByUserId(req, res) {
 	const { userId } = req.params
 	const requesterUserId = req.headers['x-user-id']
 	const requesterEmail = getRequesterEmail(req)
