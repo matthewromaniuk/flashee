@@ -4,12 +4,12 @@ import { Button, Layout, Menu, theme, Flex} from 'antd';
 const { Header, Content, Footer } = Layout;
 const home = () => {
   const {
-    token: { colorBgContainer, borderRadiusLG, headerBg, footerBg },
+    token: { colorBgContainer, headerBg, footerBg },
   } = theme.useToken();
   const navigate = useNavigate();
   return (
-    <Layout>
-      <Layout>
+    <Layout style={{ minHeight: '100vh', width: '100%' }}>
+      <Layout style={{ flex: 1, minHeight: 0 }}>
         <Header style={{ background: headerBg, padding: 0, paddingRight: 15, paddingLeft: 5}}>
           <Flex align="center" style={{ width: '100%'}}>
             <div style={{cursor: 'pointer'}} onClick={() => navigate('/')}>
@@ -24,11 +24,11 @@ const home = () => {
         </Header>
         <Content
           style={{
-            margin: '24px 16px',
+            margin: 0,
             padding: 30,
-            minHeight: 510,
+            minHeight: '100%',
             background: colorBgContainer,
-            borderRadius: borderRadiusLG,
+            borderRadius: 0,
           }}
         >
           <Flex justify='center'>

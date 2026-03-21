@@ -6,6 +6,10 @@
     "client"
   ],
   "scripts": {
+    "server:start": "npm --prefix server start",
+    "dev:client": "npm --workspace client run dev",
+    "dev:server": "npm run server:start",
+    "dev:full": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
     "dev": "npm --workspace client run dev",
     "build": "npm --workspace client run build",
     "preview": "npm --workspace client run preview",
@@ -22,5 +26,9 @@
     "express": "^5.2.1",
     "react-router-dom": "^7.13.1"
   },
-  "type": "module"
+  "type": "module",
+  "devDependencies": {
+    "@gradio/client": "^2.1.0",
+    "concurrently": "^9.2.1"
+  }
 }

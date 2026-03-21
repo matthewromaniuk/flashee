@@ -1,29 +1,56 @@
 import React, { useState } from 'react';
 import { Card, Button } from 'antd';
-import { LeftOutlined, RightOutlined, SyncOutlined } from '@ant-design/icons';
+import {
+  LeftOutlined,
+  RightOutlined,
+  SyncOutlined,
+  EditOutlined,
+  CheckOutlined,
+  CloseOutlined,
+} from '@ant-design/icons';
 import './flashcard.css';
 
-const Flashcard = ({ frontContent, backContent }) => {
+const Flashcard = ({
+  frontContent,
+  backContent,
+  onEdit,
+  onMarkCorrect,
+  onMarkIncorrect,
+  height = 220,
+}) => {
   const [isFlipped, setIsFlipped] = useState(false);
 
   const handleFlip = () => {
     setIsFlipped(!isFlipped);
   };
 
-const actions = [
-  <LeftOutlined key="left"/>,
-  <SyncOutlined key="flip" onClick={handleFlip}/>,
-  <RightOutlined key="right" />
-]
+  const actions = [
+    <LeftOutlined key="left" />,
+    <SyncOutlined key="flip" onClick={handleFlip} />,
+    <RightOutlined key="right" />,
+  ];
+
+  if (onEdit) {
+    actions.push(<EditOutlined key="edit" onClick={onEdit} />);
+  }
+
+  if (onMarkCorrect) {
+    actions.push(<CheckOutlined key="correct" onClick={onMarkCorrect} />);
+  }
+
+  if (onMarkIncorrect) {
+    actions.push(<CloseOutlined key="incorrect" onClick={onMarkIncorrect} />);
+  }
 
   return (
-    <div className="flashcard-container">
+    <div className="flashcard-container" style={{ width: '100%' }}>
       <div 
         className={`flashcard ${isFlipped ? 'flipped' : ''}`}
+        style={{ height }}
       >
         <div className="flashcard-front">
           <Card 
-            style={{ width: 300, height: 200 }}
+            style={{ width: '100%', height: '100%' }}
             actions={actions}
           >
             {frontContent}
@@ -31,7 +58,7 @@ const actions = [
         </div>
         <div className="flashcard-back">
           <Card 
-            style={{ width: 300, height: 200 }}
+            style={{ width: '100%', height: '100%' }}
             actions={actions}
           >
             {backContent}
@@ -42,20 +69,4 @@ const actions = [
   );
 };
 
-// Usage
-const flashcard = () => (
-  <Flashcard 
-    frontContent={
-      <>
-        <h3>Question</h3>
-      </>
-    }
-    backContent={
-      <>
-        <p>answer</p>
-      </>
-    }
-  />
-);
-
-export default flashcard;
+export default Flashcard;

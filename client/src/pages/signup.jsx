@@ -1,17 +1,50 @@
 import { useNavigate } from 'react-router-dom';
 import LogoName from "../components/logoName";
-import { Button, Checkbox, Form, Input, Layout, Flex, theme } from 'antd';
+import { Button, Checkbox, Form, Input, Layout, Flex, Alert, theme } from 'antd';
+import { useState } from 'react';
 
 const { Header, Content } = Layout;
 
 const SignUp = () => {
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+  const [apiMessage, setApiMessage] = useState(null);
+  const [apiError, setApiError] = useState(null);
   const {
     token: { colorBgContainer, borderRadiusLG, headerBg },
   } = theme.useToken();
 
-  const onFinish = (values) => {
-    console.log('Success:', values);
+  const onFinish = async (values) => {
+    setLoading(true);
+    setApiMessage(null);
+    setApiError(null);
+
+    try {
+      const response = await fetch('/api/auth/sign-up', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: values.email,
+          password: values.password,
+          fullName: values.name,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        setApiError(result.error || 'Sign-up failed');
+        return;
+      }
+
+      setApiMessage(result.message || 'Sign-up request sent successfully');
+    } catch (error) {
+      setApiError('Could not reach server. Make sure backend is running on port 3000.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const onFinishFailed = (errorInfo) => {
@@ -57,6 +90,18 @@ const SignUp = () => {
                 layout="vertical"
             >
 
+            {apiMessage && (
+              <Form.Item>
+                <Alert type="success" message={apiMessage} showIcon />
+              </Form.Item>
+            )}
+
+            {apiError && (
+              <Form.Item>
+                <Alert type="error" message={apiError} showIcon />
+              </Form.Item>
+            )}
+
             <Form.Item
               label="Name"
               name="name"
@@ -91,7 +136,7 @@ const SignUp = () => {
             </Form.Item>
 
             <Form.Item wrapperCol={{ offset: 8, span: 16 }}>
-              <Button type="primary" htmlType="submit" style={{ marginRight: 8 }}>
+              <Button type="primary" htmlType="submit" style={{ marginRight: 8 }} loading={loading}>
                 Submit
               </Button>
               <Button onClick={() => navigate('/')}>

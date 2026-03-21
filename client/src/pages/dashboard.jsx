@@ -1,17 +1,26 @@
 import { useState } from 'react';
 import Navbar from "../components/navbar";
 import { useNavigate } from 'react-router-dom';
-import { Button, Layout, Menu, theme, Flex} from 'antd';
+import { Button, Layout, theme, Flex, Typography } from 'antd';
 import LogoName from "../components/logoName";
 const { Header, Sider, Content, Footer } = Layout;
+const { Title, Text } = Typography;
 const dashboard = () => {
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
   const {
-    token: { colorBgContainer, borderRadiusLG, headerBg, footerBg },
+    token: { colorBgContainer, headerBg, footerBg },
   } = theme.useToken();
+
+  const handleLogout = () => {
+    localStorage.removeItem('flashee_session');
+    localStorage.removeItem('flashee_user_email');
+    localStorage.removeItem('flashee_user_id');
+    navigate('/signin');
+  };
+
   return (
-    <Layout>
+    <Layout style={{ minHeight: '100vh', width: '100%' }}>
       <Header style={{ background: headerBg, padding: 0, paddingRight: 15, paddingLeft: 5}}>
           <Flex align="center" style={{ width: '100%'}}>
             <div style={{cursor: 'pointer'}} onClick={() => navigate('/')}>
@@ -19,24 +28,27 @@ const dashboard = () => {
             </div>
             <div style={{ flex: 1}} /> {}
             <Flex gap="small">
-              <Button type="primary" onClick={() => navigate('/')}>Log Out<output></output></Button>
+              <Button type="primary" onClick={handleLogout}>Log Out<output></output></Button>
             </Flex>
           </Flex>
         </Header>
-      <Layout>
-        <Sider width="15%" style={{background: colorBgContainer}}>
+      <Layout style={{ flex: 1, minHeight: 0 }}>
+        <Sider width="15%" style={{ background: colorBgContainer }}>
           <Navbar />
         </Sider>
         <Content
          style={{
-            margin: '24px 16px',
+            margin: 0,
             padding: 24,
-            minHeight: 280,
+            minHeight: '100%',
             background: colorBgContainer,
-            borderRadius: borderRadiusLG,
+            borderRadius: 0,
           }}
         >
-          Content
+          <Flex vertical gap={16}>
+            <Title level={3} style={{ margin: 0 }}>Dashboard</Title>
+            <Text type="secondary">Choose Decks in the sidebar to manage and view your deck bubbles.</Text>
+          </Flex>
         </Content>
       </Layout>
       <Footer style={{ background: footerBg}}>

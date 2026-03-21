@@ -1,17 +1,55 @@
 import { useNavigate } from 'react-router-dom';
 import LogoName from "../components/logoName";
-import { Button, Checkbox, Form, Input, Layout, Flex, theme } from 'antd';
+import { Button, Checkbox, Form, Input, Layout, Flex, Alert, theme } from 'antd';
+import { useState } from 'react';
 
 const { Header, Content } = Layout;
 
 const SignIn = () => {
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+  const [apiError, setApiError] = useState(null);
   const {
     token: { colorBgContainer, borderRadiusLG, headerBg },
   } = theme.useToken();
 
-  const onFinish = (values) => {
-    console.log('Success:', values);
+  const onFinish = async (values) => {
+    setLoading(true);
+    setApiError(null);
+
+    try {
+      const response = await fetch('/api/auth/sign-in', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: values.email,
+          password: values.password,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        setApiError(result.error || 'Sign-in failed');
+        return;
+      }
+
+      localStorage.setItem('flashee_session', JSON.stringify(result.session ?? {}));
+      if (result.user?.email) {
+        localStorage.setItem('flashee_user_email', result.user.email);
+      }
+      if (result.user?.id) {
+        localStorage.setItem('flashee_user_id', result.user.id);
+      }
+
+      navigate('/dashboard');
+    } catch (error) {
+      setApiError('Could not reach server. Make sure backend is running on port 3000.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const onFinishFailed = (errorInfo) => {
@@ -45,7 +83,7 @@ const SignIn = () => {
         }}
       >
         <div style={{ width: '100%', maxWidth: 500, justifyContent: 'center' }}>
-            <h1 style={{ textAlign: 'center', marginBottom: 24 }}>Sign Up</h1>
+          <h1 style={{ textAlign: 'center', marginBottom: 24 }}>Sign In</h1>
           
             <Form
                 name="basic"
@@ -56,6 +94,12 @@ const SignIn = () => {
                 autoComplete="off"
                 layout="vertical"
             >
+
+            {apiError && (
+              <Form.Item>
+                <Alert type="error" message={apiError} showIcon />
+              </Form.Item>
+            )}
             
             <Form.Item
               label="Email"
@@ -81,7 +125,7 @@ const SignIn = () => {
             </Form.Item>
 
             <Form.Item wrapperCol={{ offset: 8, span: 16 }}>
-              <Button type="primary" htmlType="submit" style={{ marginRight: 8 }}>
+              <Button type="primary" htmlType="submit" style={{ marginRight: 8 }} loading={loading}>
                 Submit
               </Button>
               <Button onClick={() => navigate('/')}>
