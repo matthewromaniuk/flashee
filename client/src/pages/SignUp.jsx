@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import LogoName from "../components/logoName";
+import LogoName from "../components/LogoName";
 import { Button, Checkbox, Form, Input, Layout, Flex, Alert, theme } from 'antd';
 import { useState } from 'react';
 

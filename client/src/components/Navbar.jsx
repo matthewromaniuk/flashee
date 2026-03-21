@@ -16,7 +16,7 @@ const items = [
     },
 ];
 
-const navbar = () => {
+const Navbar = () => {
   const [current, setCurrent] = useState('Home');
   const navigate = useNavigate();
   const onClick = e => {
@@ -35,4 +35,4 @@ const navbar = () => {
   };
   return <Menu onClick={onClick} selectedKeys={[current]} mode="vertical" items={items} />;
 };
-export default navbar;
+export default Navbar;

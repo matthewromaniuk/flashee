@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import Navbar from "../components/navbar";
+import Navbar from "../components/Navbar";
 import { useNavigate } from 'react-router-dom';
 import { Button, Layout, theme, Flex, Typography } from 'antd';
-import LogoName from "../components/logoName";
+import LogoName from "../components/LogoName";
 const { Header, Sider, Content, Footer } = Layout;
 const { Title, Text } = Typography;
-const dashboard = () => {
+const Dashboard = () => {
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
   const {
@@ -57,4 +57,4 @@ const dashboard = () => {
     </Layout>
   );
 };
-export default dashboard;
+export default Dashboard;

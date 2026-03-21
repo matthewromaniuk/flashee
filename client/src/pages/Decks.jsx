@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import Navbar from "../components/navbar";
+import Navbar from "../components/Navbar";
 import { useNavigate } from 'react-router-dom';
 import {
   Button,
@@ -19,12 +19,12 @@ import {
   Spin,
 } from 'antd';
 import { UploadOutlined, PlusOutlined, DeleteOutlined } from '@ant-design/icons';
-import LogoName from "../components/logoName";
-import CardsetBubble from '../components/cardsetBubble';
+import LogoName from "../components/LogoName";
+import CardsetBubble from '../components/CardsetBubble';
 const { Header, Sider, Content, Footer } = Layout;
 const { Text } = Typography;
 
-const decks = () => {
+const Decks = () => {
   const [isCreateDeckOpen, setIsCreateDeckOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [fileList, setFileList] = useState([]);
@@ -363,4 +363,4 @@ const decks = () => {
     </Layout>
   );
 };
-export default decks;
+export default Decks;

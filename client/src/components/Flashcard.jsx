@@ -8,7 +8,7 @@ import {
   CheckOutlined,
   CloseOutlined,
 } from '@ant-design/icons';
-import './flashcard.css';
+import './Flashcard.css';
 
 const Flashcard = ({
   frontContent,

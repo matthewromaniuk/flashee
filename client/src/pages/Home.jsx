@@ -1,8 +1,9 @@
 import { useNavigate} from 'react-router-dom';
-import LogoName from "../components/logoName";
+import LogoName from "../components/LogoName";
 import { Button, Layout, Menu, theme, Flex} from 'antd';
 const { Header, Content, Footer } = Layout;
-const home = () => {
+
+const Home = () => {
   const {
     token: { colorBgContainer, headerBg, footerBg },
   } = theme.useToken();
@@ -44,4 +45,4 @@ const home = () => {
     </Layout>
   );
 };
-export default home;
+export default Home;

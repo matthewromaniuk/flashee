@@ -16,9 +16,9 @@ import {
   theme,
 } from 'antd' 
 import { DeleteOutlined, PlusOutlined } from '@ant-design/icons'
-import LogoName from '../components/logoName'
-import Navbar from '../components/navbar'
-import Flashcard from '../components/flashcard'
+import LogoName from '../components/LogoName'
+import Navbar from '../components/Navbar'
+import Flashcard from '../components/Flashcard'
 
 const { Header, Sider, Content, Footer } = Layout
 const { Title, Text } = Typography

@@ -1,10 +1,10 @@
 import React from 'react';
-import Dashboard from "./pages/dashboard";
-import Home from "./pages/home";
-import SignUp from "./pages/signup";
-import SignIn from "./pages/signin";
-import Decks from "./pages/decks";
-import CardsetDetail from "./pages/cardsetDetail";
+import Dashboard from "./pages/Dashboard";
+import Home from "./pages/Home";
+import SignUp from "./pages/SignUp";
+import SignIn from "./pages/SignIn";
+import Decks from "./pages/Decks";
+import CardsetDetail from "./pages/CardsetDetail";
 
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 

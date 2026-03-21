@@ -2,7 +2,7 @@ import React from 'react';
 import { Image } from 'antd';
 import Logo from '../assets/FlasheeName.png';
 
-const logoName = () => (
+const LogoName = () => (
   <Image
     width={150}
     alt="FLASHEE"
@@ -10,4 +10,4 @@ const logoName = () => (
     preview = {false}
   />
 );
-export default logoName;
+export default LogoName;

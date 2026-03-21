@@ -1,5 +1,4 @@
 import express from "express";
-import dotenv from 'dotenv';
 
 //CONTROLLER IMPORTS
 import { signIn, signUp } from "./controllers/authController.js";
@@ -39,7 +38,7 @@ authRouter.post('/sign-in', signIn);
 //auth functions
 
 cardsetRouter.get('/', getCardsetsByUserEmail);
-//cardsetRouter.get('/user/:userId', getCardsetsByUserId);
+cardsetRouter.get('/user/:userId', getCardsetsByUserId);
 cardsetRouter.post('/decks', createDeck);
 cardsetRouter.post('/', createCardset);
 cardsetRouter.patch('/:id', updateCardset);
