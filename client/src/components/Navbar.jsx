@@ -1,6 +1,5 @@
-import { useState } from 'react';
 import { Menu } from "antd";
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { HomeOutlined, SwitcherOutlined } from "@ant-design/icons";
 
 const items = [
@@ -16,12 +15,20 @@ const items = [
     },
 ];
 
-const Navbar = () => {
-  const [current, setCurrent] = useState('Home');
+function getSelectedKeyFromPath(pathname) {
+  if (pathname.startsWith('/decks')) {
+    return '2';
+  }
+
+  return '1';
+}
+
+const Navbar = ({ mode = 'vertical', removeBorder = false }) => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const selectedKey = getSelectedKeyFromPath(location.pathname);
+
   const onClick = e => {
-    console.log('click ', e);
-    setCurrent(e.key);
     switch(e.key) {
       case '1':
         navigate('/dashboard');
@@ -33,6 +40,15 @@ const Navbar = () => {
         break;
     }
   };
-  return <Menu onClick={onClick} selectedKeys={[current]} mode="vertical" items={items} />;
+
+  return (
+    <Menu
+      onClick={onClick}
+      selectedKeys={[selectedKey]}
+      mode={mode}
+      items={items}
+      style={removeBorder ? { borderInlineEnd: 'none' } : undefined}
+    />
+  );
 };
 export default Navbar;

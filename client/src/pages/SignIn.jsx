@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import LogoName from "../components/LogoName";
 import { Button, Checkbox, Form, Input, Layout, Flex, Alert, theme } from 'antd';
 import { useState } from 'react';
+import AppFooter from '../components/AppFooter';
 
 const { Header, Content } = Layout;
 
@@ -135,6 +136,7 @@ const SignIn = () => {
           </Form>
         </div>
       </Content>
+      <AppFooter />
     </Layout>
   );
 };

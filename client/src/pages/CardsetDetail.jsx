@@ -15,12 +15,12 @@ import {
   message,
   theme,
 } from 'antd' 
-import { DeleteOutlined, PlusOutlined } from '@ant-design/icons'
+import { ArrowLeftOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons'
 import LogoName from '../components/LogoName'
-import Navbar from '../components/Navbar'
 import Flashcard from '../components/Flashcard'
+import AppFooter from '../components/AppFooter'
 
-const { Header, Sider, Content, Footer } = Layout
+const { Header, Content } = Layout
 const { Title, Text } = Typography
 
 const CardsetDetail = () => {
@@ -28,6 +28,7 @@ const CardsetDetail = () => {
   const { cardsetId } = useParams()
   const [cardsetName, setCardsetName] = useState('Deck Flashcards')
   const [flashcards, setFlashcards] = useState([])
+  const [currentCardIndex, setCurrentCardIndex] = useState(0)
   const [loading, setLoading] = useState(true)
   const [isEditOpen, setIsEditOpen] = useState(false)
   const [isCardsetEditOpen, setIsCardsetEditOpen] = useState(false)
@@ -41,7 +42,7 @@ const CardsetDetail = () => {
   const [cardsetForm] = Form.useForm()
 
   const {
-    token: { colorBgContainer, headerBg, footerBg },
+    token: { colorBgContainer, headerBg },
   } = theme.useToken()
 
   const fetchCardsetName = async () => {
@@ -103,6 +104,7 @@ const CardsetDetail = () => {
       }
 
       setFlashcards(result.flashcards ?? [])
+      setCurrentCardIndex(0)
     } catch (_) {
       message.error('Could not load flashcards from server.')
     } finally {
@@ -114,6 +116,19 @@ const CardsetDetail = () => {
     fetchCardsetName()
     fetchFlashcards()
   }, [cardsetId])
+
+  useEffect(() => {
+    if (flashcards.length === 0) {
+      setCurrentCardIndex(0)
+      return
+    }
+
+    setCurrentCardIndex((prevIndex) => {
+      if (prevIndex < 0) return 0
+      if (prevIndex >= flashcards.length) return flashcards.length - 1
+      return prevIndex
+    })
+  }, [flashcards])
 
   const handleLogout = () => {
     localStorage.removeItem('flashee_session')
@@ -341,6 +356,18 @@ const CardsetDetail = () => {
     }
   }
 
+  const goToPreviousCard = () => {
+    if (flashcards.length <= 1) return
+    setCurrentCardIndex((prevIndex) => (prevIndex - 1 + flashcards.length) % flashcards.length)
+  }
+
+  const goToNextCard = () => {
+    if (flashcards.length <= 1) return
+    setCurrentCardIndex((prevIndex) => (prevIndex + 1) % flashcards.length)
+  }
+
+  const currentFlashcard = flashcards[currentCardIndex] ?? null
+
   return (
     <Layout style={{ minHeight: '100vh', width: '100%' }}>
       <Header style={{ background: headerBg, padding: 0, paddingRight: 15, paddingLeft: 5 }}>
@@ -350,17 +377,12 @@ const CardsetDetail = () => {
           </div>
           <div style={{ flex: 1 }} />
           <Flex gap="small">
-            <Button type="default" onClick={() => navigate('/decks')}>Back to Decks</Button>
             <Button type="primary" onClick={handleLogout}>Log Out</Button>
           </Flex>
         </Flex>
       </Header>
 
       <Layout style={{ flex: 1, minHeight: 0 }}>
-        <Sider width="15%" style={{ background: colorBgContainer }}>
-          <Navbar />
-        </Sider>
-
         <Content
           style={{
             margin: 0,
@@ -371,6 +393,11 @@ const CardsetDetail = () => {
           }}
         >
           <Flex vertical gap={20} style={{ width: '100%', maxWidth: 1160, margin: '8px auto 20px' }}>
+            <Flex>
+              <Button type="default" icon={<ArrowLeftOutlined />} onClick={() => navigate('/decks')}>
+                Back to Decks
+              </Button>
+            </Flex>
             <Flex align="center" justify="space-between" wrap gap={10}>
               <Title level={3} style={{ margin: 0 }}>{cardsetName}</Title>
               <Flex gap="small" wrap>
@@ -388,28 +415,31 @@ const CardsetDetail = () => {
               <Empty description="No flashcards in this deck yet" />
             ) : (
               <Flex vertical gap={24} style={{ width: '100%' }}>
-                {flashcards.map((flashcard) => (
-                  <div key={flashcard.id} style={{ width: '100%' }}>
-                    <Flashcard
-                      frontContent={
-                        <>
-                          <h3>Question</h3>
-                          <p>{flashcard.question ?? ''}</p>
-                        </>
-                      }
-                      backContent={
-                        <>
-                          <h3>Answer</h3>
-                          <p>{flashcard.answer ?? ''}</p>
-                        </>
-                      }
-                      onEdit={() => openEditModal(flashcard)}
-                      onMarkCorrect={() => updateStatus(flashcard.id, true)}
-                      onMarkIncorrect={() => updateStatus(flashcard.id, false)}
-                      height={320}
-                    />
-                  </div>
-                ))}
+                <Text type="secondary">
+                  Card {currentCardIndex + 1} of {flashcards.length}
+                </Text>
+                <div style={{ width: '100%' }}>
+                  <Flashcard
+                    frontContent={
+                      <>
+                        <h3>Question</h3>
+                        <p>{currentFlashcard?.question ?? ''}</p>
+                      </>
+                    }
+                    backContent={
+                      <>
+                        <h3>Answer</h3>
+                        <p>{currentFlashcard?.answer ?? ''}</p>
+                      </>
+                    }
+                    onPrevious={goToPreviousCard}
+                    onNext={goToNextCard}
+                    onEdit={() => openEditModal(currentFlashcard)}
+                    onMarkCorrect={() => currentFlashcard && updateStatus(currentFlashcard.id, true)}
+                    onMarkIncorrect={() => currentFlashcard && updateStatus(currentFlashcard.id, false)}
+                    height={320}
+                  />
+                </div>
               </Flex>
             )}
           </Flex>
@@ -486,7 +516,7 @@ const CardsetDetail = () => {
               {editableFlashcards.length === 0 ? (
                 <Text type="secondary">No flashcards currently in this deck.</Text>
               ) : (
-                <Space direction="vertical" style={{ width: '100%' }} size={8}>
+                <Space orientation="vertical" style={{ width: '100%' }} size={8}>
                   {editableFlashcards.map((flashcard) => (
                     <Flex
                       key={flashcard.id}
@@ -514,7 +544,7 @@ const CardsetDetail = () => {
 
               <Form.List name="newFlashcards">
                 {(fields, { add, remove }) => (
-                  <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+                  <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
                     <Flex align="center" justify="space-between">
                       <Text strong>Add New Flashcards</Text>
                       <Button type="dashed" icon={<PlusOutlined />} onClick={() => add({ question: '', answer: '' })}>
@@ -555,7 +585,7 @@ const CardsetDetail = () => {
         </Content>
       </Layout>
 
-      <Footer style={{ background: footerBg }}>footer</Footer>
+      <AppFooter />
     </Layout>
   )
 }

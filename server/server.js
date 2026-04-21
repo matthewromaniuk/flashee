@@ -2,6 +2,7 @@ import express from "express";
 
 //CONTROLLER IMPORTS
 import { signIn, signUp } from "./controllers/authController.js";
+import { aiFlashcardUploadLimit, createAiFlashcards } from './controllers/aiController.js';
 
 import {
   createDeck,
@@ -9,7 +10,7 @@ import {
   deleteCardset,
   getCardsetsByUserEmail,
   updateCardset,
-} from './controllers/cardsetController';
+} from './controllers/cardsetController.js';
 
 import {
   bulkCreateFlashcards,
@@ -19,7 +20,7 @@ import {
   listFlashcards,
   updateFlashcardStatus,
   updateFlashcard,
-} from './controllers/flashcardController';
+} from './controllers/flashcardController.js';
 
 
 const app = express();
@@ -28,6 +29,7 @@ const PORT = 3000;
 app.use(express.json());
 
 const authRouter = express.Router();
+const aiRouter = express.Router();
 const cardsetRouter = express.Router();
 const flashcardRouter = express.Router({ mergeParams: true });
 //sets up routes for each controller
@@ -35,6 +37,12 @@ const flashcardRouter = express.Router({ mergeParams: true });
 authRouter.post('/sign-up', signUp);
 authRouter.post('/sign-in', signIn);
 //auth functions
+
+aiRouter.post(
+  '/flashcards',
+  express.raw({ type: 'application/octet-stream', limit: aiFlashcardUploadLimit }),
+  createAiFlashcards,
+);
 
 cardsetRouter.get('/user/:userId', getCardsetsByUserEmail);
 cardsetRouter.post('/decks', createDeck);
@@ -54,6 +62,7 @@ flashcardRouter.delete('/:flashcardId', deleteFlashcard);
 //flashcard functions
 
 app.use('/api/auth', authRouter);
+app.use('/api/ai', aiRouter);
 app.use('/api/cardsets', cardsetRouter);
 
 

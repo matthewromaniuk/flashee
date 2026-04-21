@@ -1,11 +1,13 @@
 import { useNavigate} from 'react-router-dom';
 import LogoName from "../components/LogoName";
-import { Button, Layout, Menu, theme, Flex} from 'antd';
-const { Header, Content, Footer } = Layout;
+import { Button, Layout, theme, Flex, Typography, Space } from 'antd';
+import AppFooter from '../components/AppFooter';
+const { Header, Content } = Layout;
+const { Title, Paragraph, Text } = Typography;
 
 const Home = () => {
   const {
-    token: { colorBgContainer, headerBg, footerBg },
+    token: { colorBgContainer, headerBg },
   } = theme.useToken();
   const navigate = useNavigate();
   return (
@@ -32,15 +34,32 @@ const Home = () => {
             borderRadius: 0,
           }}
         >
-          <Flex justify='center'>
-            Welcome to Flashee
+          <Flex
+            vertical
+            justify='center'
+            align='center'
+            style={{ minHeight: '70vh', textAlign: 'center' }}
+          >
+            <Space orientation="vertical" size="middle" style={{ maxWidth: 760 }}>
+              <Title level={1} style={{ marginBottom: 0 }}>
+                Study Smarter with Flashee
+              </Title>
+              <Paragraph style={{ fontSize: 18, marginBottom: 0 }}>
+                Flashee helps you turn your study material into focused flashcards,
+                organize decks by topic, and review what matters most.
+              </Paragraph>
+              <Paragraph type="secondary" style={{ marginBottom: 0 }}>
+                Create cards manually or generate them with AI, then practice at your own pace.
+              </Paragraph>
+              <Flex justify="center" style={{ marginTop: 12 }}>
+                <Button type="primary" size="large" onClick={() => navigate('/signup')}>
+                  Sign Up for Free
+                </Button>
+              </Flex>
+            </Space>
           </Flex>
         </Content>
-        <Footer style={{ background: footerBg}}>
-          <Flex justify='center'>
-            footer stuff
-          </Flex>
-        </Footer>
+        <AppFooter />
       </Layout>
     </Layout>
   );

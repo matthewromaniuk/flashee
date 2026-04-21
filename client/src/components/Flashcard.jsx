@@ -13,6 +13,8 @@ import './Flashcard.css';
 const Flashcard = ({
   frontContent,
   backContent,
+  onPrevious,
+  onNext,
   onEdit,
   onMarkCorrect,
   onMarkIncorrect,
@@ -24,10 +26,24 @@ const Flashcard = ({
     setIsFlipped(!isFlipped);
   };
 
+  const handlePrevious = () => {
+    setIsFlipped(false);
+    if (onPrevious) {
+      onPrevious();
+    }
+  };
+
+  const handleNext = () => {
+    setIsFlipped(false);
+    if (onNext) {
+      onNext();
+    }
+  };
+
   const actions = [
-    <LeftOutlined key="left" />,
+    <LeftOutlined key="left" onClick={handlePrevious} />,
     <SyncOutlined key="flip" onClick={handleFlip} />,
-    <RightOutlined key="right" />,
+    <RightOutlined key="right" onClick={handleNext} />,
   ];
 
   if (onEdit) {
