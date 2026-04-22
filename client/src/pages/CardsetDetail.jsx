@@ -2,26 +2,25 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import {
   Button,
-  Divider,
   Empty,
   Flex,
   Form,
   Input,
-  InputNumber,
   Layout,
-  Modal,
-  Radio,
   Space,
   Spin,
   Typography,
   message,
   theme,
-} from 'antd' 
-import { ArrowLeftOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons'
+} from 'antd'
+import { ArrowLeftOutlined } from '@ant-design/icons'
 import LogoName from '../components/LogoName'
 import HeaderSearch from '../components/HeaderSearch'
 import Flashcard from '../components/Flashcard'
 import AppFooter from '../components/AppFooter'
+import EditDeckModal from '../components/EditDeckModal'
+import { clearStoredSession } from '../lib/session.js'
+import { useCardsetDetailData } from '../hooks/useCardsetDetailData.js'
 
 const { Header, Content } = Layout
 const { Title, Text } = Typography
@@ -29,12 +28,8 @@ const { Title, Text } = Typography
 const CardsetDetail = () => {
   const navigate = useNavigate()
   const { cardsetId } = useParams()
-  const [cardsetName, setCardsetName] = useState('Deck Flashcards')
-  const [cardsetIsPublic, setCardsetIsPublic] = useState(false)
-  const [flashcards, setFlashcards] = useState([])
   const [currentCardIndex, setCurrentCardIndex] = useState(0)
   const [practiceMode, setPracticeMode] = useState(false)
-  const [loading, setLoading] = useState(true)
   const [isEditOpen, setIsEditOpen] = useState(false)
   const [isCardsetEditOpen, setIsCardsetEditOpen] = useState(false)
   const [savingCardsetEdit, setSavingCardsetEdit] = useState(false)
@@ -46,87 +41,23 @@ const CardsetDetail = () => {
   const [savingEdit, setSavingEdit] = useState(false)
   const [editForm] = Form.useForm()
   const [cardsetForm] = Form.useForm()
-  const [isOwner, setIsOwner] = useState(false)
   const [forking, setForking] = useState(false)
 
   const {
     token: { colorBgContainer, headerBg },
   } = theme.useToken()
 
-  const fetchCardsetName = async () => {
-    const userId = localStorage.getItem('flashee_user_id')
-    const userEmail = localStorage.getItem('flashee_user_email')
-
-    if (!cardsetId || !userId || !userEmail) {
-      return
-    }
-
-    try {
-      const response = await fetch(`/api/cardsets/user/${userId}`, {
-        headers: {
-          'x-user-id': userId,
-          'x-user-email': userEmail,
-        },
-      })
-
-      const result = await response.json()
-      if (!response.ok) {
-        setIsOwner(false)
-        return
-      }
-
-      const selectedCardset = (result.cardsets ?? []).find(
-        (cardset) => String(cardset.id) === String(cardsetId)
-      )
-
-      if (selectedCardset?.name) {
-        setCardsetName(selectedCardset.name)
-        setCardsetIsPublic(Boolean(selectedCardset.isPublic))
-        cardsetForm.setFieldsValue({
-          name: selectedCardset.name,
-          isPublic: Boolean(selectedCardset.isPublic),
-        })
-        // User is owner if they have a role in their cardsets list
-        setIsOwner(selectedCardset?.role === 'owner')
-      } else {
-        // Deck not found in user's cardsets, so they don't own it
-        setIsOwner(false)
-      }
-    } catch (_) {
-      // Keep fallback title if name lookup fails.
-      setIsOwner(false)
-    }
-  }
-
-  const fetchFlashcards = async () => {
-    const userEmail = localStorage.getItem('flashee_user_email')
-    if (!cardsetId || !userEmail) {
-      setLoading(false)
-      return
-    }
-
-    try {
-      const response = await fetch(`/api/cardsets/${cardsetId}/flashcards`, {
-        headers: {
-          'x-user-email': userEmail,
-        },
-      })
-
-      const result = await response.json()
-      if (!response.ok) {
-        message.error(result.error || 'Failed to load flashcards')
-        setLoading(false)
-        return
-      }
-
-      setFlashcards(result.flashcards ?? [])
-      setCurrentCardIndex(0)
-    } catch (_) {
-      message.error('Could not load flashcards from server.')
-    } finally {
-      setLoading(false)
-    }
-  }
+  const {
+    cardsetName,
+    cardsetIsPublic,
+    flashcards,
+    loading,
+    isOwner,
+    setCardsetName,
+    setCardsetIsPublic,
+    setFlashcards,
+    refreshFlashcards,
+  } = useCardsetDetailData(cardsetId)
 
   const visibleFlashcards = useMemo(() => {
     if (!practiceMode) {
@@ -135,11 +66,6 @@ const CardsetDetail = () => {
 
     return flashcards.filter((flashcard) => flashcard?.hasStatus === true && flashcard?.isCorrect === false)
   }, [flashcards, practiceMode])
-
-  useEffect(() => {
-    fetchCardsetName()
-    fetchFlashcards()
-  }, [cardsetId])
 
   useEffect(() => {
     if (visibleFlashcards.length === 0) {
@@ -155,9 +81,7 @@ const CardsetDetail = () => {
   }, [visibleFlashcards])
 
   const handleLogout = () => {
-    localStorage.removeItem('flashee_session')
-    localStorage.removeItem('flashee_user_email')
-    localStorage.removeItem('flashee_user_id')
+    clearStoredSession()
     navigate('/signin')
   }
 
@@ -208,8 +132,8 @@ const CardsetDetail = () => {
 
       message.success('Flashcard updated')
       closeEditModal()
-      fetchFlashcards()
-    } catch (_) {
+      refreshFlashcards()
+    } catch {
       // form validation handles user feedback
     } finally {
       setSavingEdit(false)
@@ -251,7 +175,7 @@ const CardsetDetail = () => {
         }
         return (prevIndex + 1) % visibleFlashcards.length
       })
-    } catch (_) {
+    } catch {
       message.error('Could not update flashcard status.')
     }
   }
@@ -400,8 +324,8 @@ const CardsetDetail = () => {
       setCardsetIsPublic(Boolean(result?.cardset?.isPublic ?? values.isPublic))
       message.success('Deck updated')
       closeCardsetEdit()
-      fetchFlashcards()
-    } catch (_) {
+      refreshFlashcards()
+    } catch {
       // Form shows field-level validation
     } finally {
       setSavingCardsetEdit(false)
@@ -432,7 +356,7 @@ const CardsetDetail = () => {
 
       message.success('Deck deleted')
       navigate('/workspace')
-    } catch (_) {
+    } catch {
       message.error('Could not delete deck.')
     } finally {
       setDeletingCardset(false)
@@ -470,7 +394,7 @@ const CardsetDetail = () => {
 
       message.success('Deck forked successfully')
       navigate(`/workspace/${newCardsetId}`)
-    } catch (_) {
+    } catch {
       message.error('Could not fork deck.')
     } finally {
       setForking(false)
@@ -607,127 +531,23 @@ const CardsetDetail = () => {
             </Form>
           </Modal>
 
-          <Modal
-            title="Edit Deck"
+          <EditDeckModal
             open={isCardsetEditOpen}
             onCancel={closeCardsetEdit}
             onOk={saveCardsetEdit}
-            okText="Save"
             confirmLoading={savingCardsetEdit}
-            destroyOnHidden
-          >
-            <Form form={cardsetForm} layout="vertical">
-              <Form.Item
-                name="name"
-                label="Deck Name"
-                rules={[{ required: true, message: 'Please enter a deck name' }]}
-              >
-                <Input />
-              </Form.Item>
-              <Form.Item
-                name="isPublic"
-                label="Visibility"
-                rules={[{ required: true, message: 'Please select visibility' }]}
-              >
-                <Radio.Group optionType="button" buttonStyle="solid">
-                  <Radio value={true}>Public</Radio>
-                  <Radio value={false}>Private</Radio>
-                </Radio.Group>
-              </Form.Item>
-
-              <Divider style={{ margin: '12px 0' }} />
-
-              <Text strong style={{ display: 'block', marginBottom: 8 }}>Existing Flashcards</Text>
-              {editableFlashcards.length === 0 ? (
-                <Text type="secondary">No flashcards currently in this deck.</Text>
-              ) : (
-                <Space orientation="vertical" style={{ width: '100%' }} size={8}>
-                  {editableFlashcards.map((flashcard, index) => (
-                    <Flex
-                      key={flashcard.id}
-                      align="center"
-                      justify="space-between"
-                      style={{ padding: '8px 10px', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 8 }}
-                    >
-                      <div style={{ flex: 1 }}>
-                        <Text type="secondary" style={{ display: 'block' }}>
-                          #{index + 1}
-                        </Text>
-                        <Text strong>{flashcard.question ?? 'Untitled question'}</Text>
-                        <Text type="secondary" style={{ display: 'block' }}>{flashcard.answer ?? ''}</Text>
-                      </div>
-                      <Flex align="center" gap={8}>
-                        <InputNumber
-                          min={1}
-                          max={editableFlashcards.length}
-                          value={moveTargetsByFlashcardId[String(flashcard.id)] ?? index + 1}
-                          onChange={(value) => {
-                            setMoveTargetsByFlashcardId((prev) => ({
-                              ...prev,
-                              [String(flashcard.id)]: value,
-                            }))
-                          }}
-                          onPressEnter={() => moveExistingFlashcard(flashcard.id, moveTargetsByFlashcardId[String(flashcard.id)])}
-                          style={{ width: 90 }}
-                        />
-                        <Button onClick={() => moveExistingFlashcard(flashcard.id, moveTargetsByFlashcardId[String(flashcard.id)])}>
-                          Move
-                        </Button>
-                        <Button
-                          danger
-                          icon={<DeleteOutlined />}
-                          onClick={() => removeExistingFlashcard(flashcard.id)}
-                        >
-                          Delete
-                        </Button>
-                      </Flex>
-                    </Flex>
-                  ))}
-                </Space>
-              )}
-
-              <Divider style={{ margin: '12px 0' }} />
-
-              <Form.List name="newFlashcards">
-                {(fields, { add, remove }) => (
-                  <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
-                    <Flex align="center" justify="space-between">
-                      <Text strong>Add New Flashcards</Text>
-                      <Button type="dashed" icon={<PlusOutlined />} onClick={() => add({ question: '', answer: '' })}>
-                        Add
-                      </Button>
-                    </Flex>
-
-                    {fields.map(({ key, name, ...restField }) => (
-                      <Space key={key} align="start" style={{ width: '100%', display: 'flex' }}>
-                        <Form.Item
-                          {...restField}
-                          name={[name, 'question']}
-                          label="Question"
-                          rules={[{ required: true, message: 'Question is required' }]}
-                          style={{ flex: 1 }}
-                        >
-                          <Input placeholder="Enter question" />
-                        </Form.Item>
-
-                        <Form.Item
-                          {...restField}
-                          name={[name, 'answer']}
-                          label="Answer"
-                          rules={[{ required: true, message: 'Answer is required' }]}
-                          style={{ flex: 1 }}
-                        >
-                          <Input placeholder="Enter answer" />
-                        </Form.Item>
-
-                        <Button danger icon={<DeleteOutlined />} onClick={() => remove(name)} style={{ marginTop: 30 }} />
-                      </Space>
-                    ))}
-                  </Space>
-                )}
-              </Form.List>
-            </Form>
-          </Modal>
+            form={cardsetForm}
+            editableFlashcards={editableFlashcards}
+            moveTargetsByFlashcardId={moveTargetsByFlashcardId}
+            onMoveTargetChange={(flashcardId, value) => {
+              setMoveTargetsByFlashcardId((prev) => ({
+                ...prev,
+                [String(flashcardId)]: value,
+              }))
+            }}
+            onMoveExistingFlashcard={moveExistingFlashcard}
+            onRemoveExistingFlashcard={removeExistingFlashcard}
+          />
         </Content>
       </Layout>
 

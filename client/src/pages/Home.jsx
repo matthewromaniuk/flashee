@@ -2,8 +2,9 @@ import { useNavigate} from 'react-router-dom';
 import LogoName from "../components/LogoName";
 import { Button, Layout, theme, Flex, Typography, Space } from 'antd';
 import AppFooter from '../components/AppFooter';
-const { Header, Content } = Layout;
-const { Title, Paragraph, Text } = Typography;
+import PageContent from '../components/PageContent';
+const { Header } = Layout;
+const { Title, Paragraph } = Typography;
 
 const Home = () => {
   const {
@@ -25,19 +26,23 @@ const Home = () => {
             </Flex>
           </Flex>
         </Header>
-        <Content
-          style={{
-            margin: 0,
-            padding: 30,
-            minHeight: '100%',
-            background: colorBgContainer,
+        <PageContent
+          background={colorBgContainer}
+          margin={0}
+          padding={30}
+          minHeight="100%"
+          maxWidth={760}
+          contentStyle={{
             borderRadius: 0,
+          }}
+          wrapperStyle={{
+            maxWidth: 760,
           }}
         >
           <Flex
             vertical
-            justify='center'
-            align='center'
+            justify="center"
+            align="center"
             style={{ minHeight: '70vh', textAlign: 'center' }}
           >
             <Space orientation="vertical" size="middle" style={{ maxWidth: 760 }}>
@@ -58,7 +63,7 @@ const Home = () => {
               </Flex>
             </Space>
           </Flex>
-        </Content>
+        </PageContent>
         <AppFooter />
       </Layout>
     </Layout>

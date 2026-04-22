@@ -1,10 +1,11 @@
 import { useNavigate } from 'react-router-dom';
 import LogoName from "../components/LogoName";
-import { Button, Checkbox, Form, Input, Layout, Flex, Alert, theme } from 'antd';
+import { Button, Form, Input, Layout, Flex, Alert, theme } from 'antd';
 import { useState } from 'react';
 import AppFooter from '../components/AppFooter';
+import PageContent from '../components/PageContent';
 
-const { Header, Content } = Layout;
+const { Header } = Layout;
 
 const SignUp = () => {
   const navigate = useNavigate();
@@ -41,15 +42,11 @@ const SignUp = () => {
       }
 
       setApiMessage(result.message || 'Sign-up request sent successfully');
-    } catch (error) {
+    } catch {
       setApiError('Could not reach server. Make sure backend is running on port 3000.');
     } finally {
       setLoading(false);
     }
-  };
-
-  const onFinishFailed = (errorInfo) => {
-    console.log('Failed:', errorInfo);
   };
 
   return (
@@ -66,30 +63,27 @@ const SignUp = () => {
             </Flex>
           </Flex>
         </Header>
-      <Content
-        style={{
-          padding: 60,
-          margin: 10,
-          minHeight: 280,
-          background: colorBgContainer,
-          borderRadius: borderRadiusLG,
+      <PageContent
+        background={colorBgContainer}
+        borderRadius={borderRadiusLG}
+        margin={10}
+        padding={60}
+        minHeight={280}
+        maxWidth={500}
+        contentStyle={{
           display: 'flex',
           justifyContent: 'center',
           alignItems: 'center',
         }}
       >
-        <div style={{ width: '100%', maxWidth: 500, justifyContent: 'center' }}>
-            <h1 style={{ textAlign: 'center', marginBottom: 24 }}>Sign Up</h1>
-          
-            <Form
-                name="basic"
-                style={{ maxWidth: 600 }}
-                initialValues={{ remember: true }}
-                onFinish={onFinish}
-                onFinishFailed={onFinishFailed}
-                autoComplete="off"
-                layout="vertical"
-            >
+        <h1 style={{ textAlign: 'center', marginBottom: 24 }}>Sign Up</h1>
+        <Form
+          name="basic"
+          style={{ maxWidth: 600 }}
+          onFinish={onFinish}
+          autoComplete="off"
+          layout="vertical"
+        >
 
             {apiMessage && (
               <Form.Item>
@@ -110,7 +104,7 @@ const SignUp = () => {
                 { required: true, message: 'Please input your name!' }
               ]}
             >
-              <Input type="name" />
+              <Input />
             </Form.Item>
             
             <Form.Item
@@ -132,10 +126,6 @@ const SignUp = () => {
               <Input.Password />
             </Form.Item>
 
-            <Form.Item name="remember" valuePropName="checked" wrapperCol={{ offset: 8, span: 16 }}>
-              <Checkbox>Remember me</Checkbox>
-            </Form.Item>
-
             <Form.Item wrapperCol={{ offset: 8, span: 16 }}>
               <Button type="primary" htmlType="submit" style={{ marginRight: 8 }} loading={loading}>
                 Submit
@@ -144,9 +134,8 @@ const SignUp = () => {
                 Back
               </Button>
             </Form.Item>
-          </Form>
-        </div>
-      </Content>
+        </Form>
+      </PageContent>
       <AppFooter />
     </Layout>
   );

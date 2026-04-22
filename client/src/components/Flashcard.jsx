@@ -8,7 +8,46 @@ import {
   CheckOutlined,
   CloseOutlined,
 } from '@ant-design/icons';
-import './Flashcard.css';
+
+const containerStyle = {
+  width: '100%',
+  perspective: 1000,
+};
+
+const cardStageStyle = {
+  width: '100%',
+  position: 'relative',
+  transition: 'transform 0.6s',
+  transformStyle: 'preserve-3d',
+};
+
+const cardFaceStyle = {
+  position: 'absolute',
+  inset: 0,
+  width: '100%',
+  height: '100%',
+  backfaceVisibility: 'hidden',
+  WebkitBackfaceVisibility: 'hidden',
+};
+
+const cardBackStyle = {
+  ...cardFaceStyle,
+  transform: 'rotateY(180deg)',
+};
+
+const cardStyle = {
+  width: '100%',
+  height: '100%',
+};
+
+const cardBodyStyle = {
+  height: '100%',
+  display: 'flex',
+  flexDirection: 'column',
+  justifyContent: 'center',
+  alignItems: 'center',
+  textAlign: 'center',
+};
 
 const Flashcard = ({
   frontContent,
@@ -59,22 +98,27 @@ const Flashcard = ({
   }
 
   return (
-    <div className="flashcard-container" style={{ width: '100%' }}>
-      <div 
-        className={`flashcard ${isFlipped ? 'flipped' : ''}`}
-        style={{ height }}
+    <div style={containerStyle}>
+      <div
+        style={{
+          ...cardStageStyle,
+          height,
+          transform: isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)',
+        }}
       >
-        <div className="flashcard-front">
-          <Card 
-            style={{ width: '100%', height: '100%' }}
+        <div style={cardFaceStyle}>
+          <Card
+            style={cardStyle}
+            bodyStyle={cardBodyStyle}
             actions={actions}
           >
             {frontContent}
           </Card>
         </div>
-        <div className="flashcard-back">
-          <Card 
-            style={{ width: '100%', height: '100%' }}
+        <div style={cardBackStyle}>
+          <Card
+            style={cardStyle}
+            bodyStyle={cardBodyStyle}
             actions={actions}
           >
             {backContent}

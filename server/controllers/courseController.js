@@ -1,28 +1,7 @@
 import { supabase } from '../lib/supabaseClient.js'
 import { generateInt64Id } from '../lib/int64Id.js'
 import { canWrite, getRequesterEmail, isOwner } from '../lib/cardsetPermissions.js'
-
-async function getCourseRole(courseId, userEmail) {
-  const { data, error } = await supabase
-    .from('course_user')
-    .select('course_id, role')
-    .eq('user_email', userEmail)
-
-  if (error) {
-    return { role: null, error }
-  }
-
-  const targetId = String(courseId)
-  const match = (data ?? []).find((row) => {
-    try {
-      return BigInt(row.course_id) === BigInt(targetId)
-    } catch {
-      return String(row.course_id) === targetId
-    }
-  })
-
-  return { role: match?.role ?? null, error: null }
-}
+import { getCourseRole } from '../lib/courseAccess.js'
 
 export async function getCoursesByUserId(req, res) {
   const { userId } = req.params

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Button,
@@ -7,7 +7,6 @@ import {
   Layout,
   Spin,
   Typography,
-  message,
   theme,
 } from 'antd';
 import LogoName from '../components/LogoName';
@@ -15,6 +14,8 @@ import HeaderSearch from '../components/HeaderSearch';
 import CardsetBubble from '../components/CardsetBubble';
 import FolderBubble from '../components/FolderBubble';
 import AppFooter from '../components/AppFooter';
+import { clearStoredSession } from '../lib/session.js';
+import { useSearchResultsData } from '../hooks/useSearchResultsData.js';
 
 const { Header, Content } = Layout;
 const { Title, Text } = Typography;
@@ -23,136 +24,67 @@ const SearchResults = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const query = (searchParams.get('q') ?? '').trim();
-  const [yourCourses, setYourCourses] = useState([]);
-  const [yourDecks, setYourDecks] = useState([]);
-  const [publicCourses, setPublicCourses] = useState([]);
-  const [publicDecks, setPublicDecks] = useState([]);
-  const [loading, setLoading] = useState(true);
 
   const {
     token: { colorBgContainer, headerBg },
   } = theme.useToken();
+  const { yourCourses, yourDecks, publicCourses, publicDecks, loading } = useSearchResultsData(query);
 
-  const normalizedQuery = useMemo(() => query.toLowerCase(), [query]);
+  const sections = useMemo(() => [
+    {
+      title: 'Your Courses',
+      empty: 'No matching courses',
+      items: yourCourses,
+      renderItem: (course) => (
+        <FolderBubble
+          key={course.id}
+          folder={course}
+          onClick={() => navigate(`/courses/${course.id}`)}
+        />
+      ),
+    },
+    {
+      title: 'Your Decks',
+      empty: 'No matching decks',
+      items: yourDecks,
+      renderItem: (cardset) => (
+        <CardsetBubble
+          key={cardset.id}
+          cardset={cardset}
+          onClick={() => navigate(`/workspace/${cardset.id}`)}
+        />
+      ),
+    },
+    {
+      title: 'Public Courses',
+      empty: 'No matching public courses',
+      items: publicCourses,
+      renderItem: (course) => (
+        <FolderBubble
+          key={course.id}
+          folder={course}
+          onClick={() => navigate(`/courses/${course.id}`)}
+        />
+      ),
+    },
+    {
+      title: 'Public Decks',
+      empty: 'No matching public decks',
+      items: publicDecks,
+      renderItem: (cardset) => (
+        <CardsetBubble
+          key={cardset.id}
+          cardset={cardset}
+          onClick={() => navigate(`/workspace/${cardset.id}`)}
+        />
+      ),
+    },
+  ], [navigate, yourCourses, yourDecks, publicCourses, publicDecks]);
 
-  const matchesQuery = (value) => String(value ?? '').toLowerCase().includes(normalizedQuery)
-
-  const fetchSearchData = async () => {
-    const userId = localStorage.getItem('flashee_user_id');
-    const userEmail = localStorage.getItem('flashee_user_email');
-
-    if (!userId || !userEmail) {
-      setLoading(false);
-      return;
-    }
-
-    try {
-      const [coursesResponse, cardsetsResponse, publicCoursesResponse, publicCardsetsResponse] = await Promise.all([
-        fetch(`/api/courses/user/${userId}`, {
-          headers: {
-            'x-user-id': userId,
-            'x-user-email': userEmail,
-          },
-        }),
-        fetch(`/api/cardsets/user/${userId}`, {
-          headers: {
-            'x-user-id': userId,
-            'x-user-email': userEmail,
-          },
-        }),
-        fetch('/api/courses/public'),
-        fetch('/api/cardsets/public'),
-      ]);
-
-      const coursesResult = await coursesResponse.json();
-      const cardsetsResult = await cardsetsResponse.json();
-      const publicCoursesResult = await publicCoursesResponse.json();
-      const publicCardsetsResult = await publicCardsetsResponse.json();
-
-      if (!coursesResponse.ok) {
-        message.error(coursesResult.error || 'Failed to load courses');
-        setLoading(false);
-        return;
-      }
-
-      if (!cardsetsResponse.ok) {
-        message.error(cardsetsResult.error || 'Failed to load decks');
-        setLoading(false);
-        return;
-      }
-
-      if (!publicCoursesResponse.ok) {
-        message.error(publicCoursesResult.error || 'Failed to load public courses');
-        setLoading(false);
-        return;
-      }
-
-      if (!publicCardsetsResponse.ok) {
-        message.error(publicCardsetsResult.error || 'Failed to load public decks');
-        setLoading(false);
-        return;
-      }
-
-      const yourCourseIds = new Set((coursesResult.courses ?? []).map((course) => String(course.id)));
-      const yourDeckIds = new Set((cardsetsResult.cardsets ?? []).map((cardset) => String(cardset.id)));
-
-      const matchedYourCourses = (coursesResult.courses ?? []).filter((course) => {
-        if (!normalizedQuery) return false;
-        return matchesQuery(course.name) || matchesQuery(course.description);
-      });
-
-      const matchedYourDecks = (cardsetsResult.cardsets ?? []).filter((cardset) => {
-        if (!normalizedQuery) return false;
-        const courseName = String(
-          (coursesResult.courses ?? []).find((course) => String(course.id) === String(cardset.course_id))?.name ?? ''
-        );
-        return matchesQuery(cardset.name) || matchesQuery(cardset.description) || matchesQuery(courseName);
-      });
-
-      const matchedPublicCourses = (publicCoursesResult.courses ?? []).filter((course) => {
-        if (!normalizedQuery) return false;
-        if (yourCourseIds.has(String(course.id))) return false;
-        return matchesQuery(course.name) || matchesQuery(course.description);
-      });
-
-      const matchedPublicDecks = (publicCardsetsResult.cardsets ?? []).filter((cardset) => {
-        if (!normalizedQuery) return false;
-        if (yourDeckIds.has(String(cardset.id))) return false;
-        const courseName = String(
-          (publicCoursesResult.courses ?? []).find((course) => String(course.id) === String(cardset.course_id))?.name ?? ''
-        );
-        return matchesQuery(cardset.name) || matchesQuery(cardset.description) || matchesQuery(courseName);
-      });
-
-      setYourCourses(matchedYourCourses);
-      setYourDecks(matchedYourDecks);
-      setPublicCourses(matchedPublicCourses);
-      setPublicDecks(matchedPublicDecks);
-    } catch (_) {
-      message.error('Could not load search results from server.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (!query) {
-      setYourCourses([]);
-      setYourDecks([]);
-      setPublicCourses([]);
-      setPublicDecks([]);
-      setLoading(false);
-      return;
-    }
-
-    setLoading(true);
-    fetchSearchData();
-  }, [query]);
+  const hasResults = sections.some((section) => section.items.length > 0);
 
   const handleLogout = () => {
-    localStorage.removeItem('flashee_session');
-    localStorage.removeItem('flashee_user_email');
-    localStorage.removeItem('flashee_user_id');
+    clearStoredSession();
     navigate('/signin');
   };
 
@@ -188,7 +120,6 @@ const SearchResults = () => {
               <Title level={3} style={{ margin: 0 }}>
                 Search Results
               </Title>
-              <Text type="secondary">Query: {query || 'None'}</Text>
             </Flex>
 
             {loading ? (
@@ -197,85 +128,24 @@ const SearchResults = () => {
               </Flex>
             ) : !query ? (
               <Empty description="Enter a search term in the header" />
-            ) : yourCourses.length === 0 && yourDecks.length === 0 && publicCourses.length === 0 && publicDecks.length === 0 ? (
+            ) : !hasResults ? (
               <Empty description="No matching courses or decks found" />
             ) : (
               <Flex vertical gap={24}>
-                <div>
-                  <Text style={{ fontSize: 18, fontWeight: 600, display: 'block', marginBottom: 12 }}>
-                    Your Courses
-                  </Text>
-                  {yourCourses.length === 0 ? (
-                    <Empty description="No matching courses" />
-                  ) : (
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))', gap: 16 }}>
-                      {yourCourses.map((course) => (
-                        <FolderBubble
-                          key={course.id}
-                          folder={course}
-                          onClick={() => navigate(`/courses/${course.id}`)}
-                        />
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                <div>
-                  <Text style={{ fontSize: 18, fontWeight: 600, display: 'block', marginBottom: 12 }}>
-                    Your Decks
-                  </Text>
-                  {yourDecks.length === 0 ? (
-                    <Empty description="No matching decks" />
-                  ) : (
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))', gap: 16 }}>
-                      {yourDecks.map((cardset) => (
-                        <CardsetBubble
-                          key={cardset.id}
-                          cardset={cardset}
-                          onClick={() => navigate(`/workspace/${cardset.id}`)}
-                        />
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                <div>
-                  <Text style={{ fontSize: 18, fontWeight: 600, display: 'block', marginBottom: 12 }}>
-                    Public Courses
-                  </Text>
-                  {publicCourses.length === 0 ? (
-                    <Empty description="No matching public courses" />
-                  ) : (
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))', gap: 16 }}>
-                      {publicCourses.map((course) => (
-                        <FolderBubble
-                          key={course.id}
-                          folder={course}
-                          onClick={() => navigate(`/courses/${course.id}`)}
-                        />
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                <div>
-                  <Text style={{ fontSize: 18, fontWeight: 600, display: 'block', marginBottom: 12 }}>
-                    Public Decks
-                  </Text>
-                  {publicDecks.length === 0 ? (
-                    <Empty description="No matching public decks" />
-                  ) : (
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))', gap: 16 }}>
-                      {publicDecks.map((cardset) => (
-                        <CardsetBubble
-                          key={cardset.id}
-                          cardset={cardset}
-                          onClick={() => navigate(`/workspace/${cardset.id}`)}
-                        />
-                      ))}
-                    </div>
-                  )}
-                </div>
+                {sections.map((section) => (
+                  <div key={section.title}>
+                    <Text style={{ fontSize: 18, fontWeight: 600, display: 'block', marginBottom: 12 }}>
+                      {section.title}
+                    </Text>
+                    {section.items.length === 0 ? (
+                      <Empty description={section.empty} />
+                    ) : (
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))', gap: 16 }}>
+                        {section.items.map(section.renderItem)}
+                      </div>
+                    )}
+                  </div>
+                ))}
               </Flex>
             )}
           </Flex>

@@ -1,10 +1,12 @@
 import { useNavigate } from 'react-router-dom';
 import LogoName from "../components/LogoName";
-import { Button, Checkbox, Form, Input, Layout, Flex, Alert, theme } from 'antd';
+import { Button, Form, Input, Layout, Flex, Alert, theme } from 'antd';
 import { useState } from 'react';
 import AppFooter from '../components/AppFooter';
+import PageContent from '../components/PageContent';
+import { setStoredSession } from '../lib/session.js';
 
-const { Header, Content } = Layout;
+const { Header } = Layout;
 
 const SignIn = () => {
   const navigate = useNavigate();
@@ -37,24 +39,17 @@ const SignIn = () => {
         return;
       }
 
-      localStorage.setItem('flashee_session', JSON.stringify(result.session ?? {}));
-      if (result.user?.email) {
-        localStorage.setItem('flashee_user_email', result.user.email);
-      }
-      if (result.user?.id) {
-        localStorage.setItem('flashee_user_id', result.user.id);
-      }
+      setStoredSession({
+        session: result.session,
+        user: result.user,
+      });
 
       navigate('/workspace');
-    } catch (error) {
+    } catch {
       setApiError('Could not reach server. Make sure backend is running on port 3000.');
     } finally {
       setLoading(false);
     }
-  };
-
-  const onFinishFailed = (errorInfo) => {
-    console.log('Failed:', errorInfo);
   };
 
   return (
@@ -71,30 +66,27 @@ const SignIn = () => {
             </Flex>
           </Flex>
         </Header>
-      <Content
-        style={{
-          padding: 60,
-          margin: 10,
-          minHeight: 280,
-          background: colorBgContainer,
-          borderRadius: borderRadiusLG,
+      <PageContent
+        background={colorBgContainer}
+        borderRadius={borderRadiusLG}
+        margin={10}
+        padding={60}
+        minHeight={280}
+        maxWidth={500}
+        contentStyle={{
           display: 'flex',
           justifyContent: 'center',
           alignItems: 'center',
         }}
       >
-        <div style={{ width: '100%', maxWidth: 500, justifyContent: 'center' }}>
-          <h1 style={{ textAlign: 'center', marginBottom: 24 }}>Sign In</h1>
-          
-            <Form
-                name="basic"
-                style={{ maxWidth: 600 }}
-                initialValues={{ remember: true }}
-                onFinish={onFinish}
-                onFinishFailed={onFinishFailed}
-                autoComplete="off"
-                layout="vertical"
-            >
+        <h1 style={{ textAlign: 'center', marginBottom: 24 }}>Sign In</h1>
+        <Form
+          name="basic"
+          style={{ maxWidth: 600 }}
+          onFinish={onFinish}
+          autoComplete="off"
+          layout="vertical"
+        >
 
             {apiError && (
               <Form.Item>
@@ -121,10 +113,6 @@ const SignIn = () => {
               <Input.Password />
             </Form.Item>
 
-            <Form.Item name="remember" valuePropName="checked" wrapperCol={{ offset: 8, span: 16 }}>
-              <Checkbox>Remember me</Checkbox>
-            </Form.Item>
-
             <Form.Item wrapperCol={{ offset: 8, span: 16 }}>
               <Button type="primary" htmlType="submit" style={{ marginRight: 8 }} loading={loading}>
                 Submit
@@ -133,9 +121,8 @@ const SignIn = () => {
                 Back
               </Button>
             </Form.Item>
-          </Form>
-        </div>
-      </Content>
+        </Form>
+      </PageContent>
       <AppFooter />
     </Layout>
   );

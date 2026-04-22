@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   Button,
@@ -18,6 +18,8 @@ import LogoName from '../components/LogoName';
 import HeaderSearch from '../components/HeaderSearch';
 import CardsetBubble from '../components/CardsetBubble';
 import AppFooter from '../components/AppFooter';
+import { clearStoredSession } from '../lib/session.js';
+import { useCourseDetailData } from '../hooks/useCourseDetailData.js';
 
 const { Header, Content } = Layout;
 const { Title, Text } = Typography;
@@ -25,105 +27,23 @@ const { Title, Text } = Typography;
 const CourseDetail = () => {
   const navigate = useNavigate();
   const { courseId } = useParams();
-  const [course, setCourse] = useState(null);
-  const [courseDecks, setCourseDecks] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [savingEdit, setSavingEdit] = useState(false);
-  const [canEditCourse, setCanEditCourse] = useState(false);
   const [editForm] = Form.useForm();
 
   const {
     token: { colorBgContainer, headerBg },
   } = theme.useToken();
 
+  const {
+    course,
+    courseDecks,
+    loading,
+    canEditCourse,
+    setCourse,
+  } = useCourseDetailData(courseId);
+
   const titleText = useMemo(() => course?.name ?? 'Course', [course]);
-
-  const fetchCourseAndDecks = async () => {
-    const userId = localStorage.getItem('flashee_user_id');
-    const userEmail = localStorage.getItem('flashee_user_email');
-
-    if (!userId || !userEmail || !courseId) {
-      setLoading(false);
-      return;
-    }
-
-    try {
-      const [coursesResponse, cardsetsResponse, publicCoursesResponse, publicCardsetsResponse] = await Promise.all([
-        fetch(`/api/courses/user/${userId}`, {
-          headers: {
-            'x-user-id': userId,
-            'x-user-email': userEmail,
-          },
-        }),
-        fetch(`/api/cardsets/user/${userId}`, {
-          headers: {
-            'x-user-id': userId,
-            'x-user-email': userEmail,
-          },
-        }),
-        fetch('/api/courses/public'),
-        fetch('/api/cardsets/public'),
-      ]);
-
-      const coursesResult = await coursesResponse.json();
-      const cardsetsResult = await cardsetsResponse.json();
-      const publicCoursesResult = await publicCoursesResponse.json();
-      const publicCardsetsResult = await publicCardsetsResponse.json();
-
-      if (!coursesResponse.ok) {
-        message.error(coursesResult.error || 'Failed to load course details');
-        setLoading(false);
-        return;
-      }
-
-      if (!cardsetsResponse.ok) {
-        message.error(cardsetsResult.error || 'Failed to load decks');
-        setLoading(false);
-        return;
-      }
-
-      if (!publicCoursesResponse.ok) {
-        message.error(publicCoursesResult.error || 'Failed to load public courses');
-        setLoading(false);
-        return;
-      }
-
-      if (!publicCardsetsResponse.ok) {
-        message.error(publicCardsetsResult.error || 'Failed to load public decks');
-        setLoading(false);
-        return;
-      }
-
-      const selectedCourse = (coursesResult.courses ?? []).find(
-        (item) => String(item.id) === String(courseId)
-      );
-
-      const selectedPublicCourse = (publicCoursesResult.courses ?? []).find(
-        (item) => String(item.id) === String(courseId)
-      );
-
-      const courseDeckSource = selectedCourse
-        ? (cardsetsResult.cardsets ?? [])
-        : (publicCardsetsResult.cardsets ?? []);
-
-      const filteredDecks = courseDeckSource.filter(
-        (cardset) => String(cardset.course_id) === String(courseId)
-      );
-
-      setCourse(selectedCourse ?? selectedPublicCourse ?? null);
-      setCanEditCourse(Boolean(selectedCourse));
-      setCourseDecks(filteredDecks);
-    } catch (_) {
-      message.error('Could not load course page from server.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchCourseAndDecks();
-  }, [courseId]);
 
   const openEditModal = () => {
     editForm.setFieldsValue({
@@ -175,7 +95,7 @@ const CourseDetail = () => {
       }));
       message.success('Course updated');
       closeEditModal();
-    } catch (_) {
+    } catch {
       // Form validation handles user feedback.
     } finally {
       setSavingEdit(false);
@@ -183,9 +103,7 @@ const CourseDetail = () => {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('flashee_session');
-    localStorage.removeItem('flashee_user_email');
-    localStorage.removeItem('flashee_user_id');
+    clearStoredSession();
     navigate('/signin');
   };
 

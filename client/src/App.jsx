@@ -2,15 +2,16 @@ import React from 'react';
 import Home from "./pages/Home";
 import SignUp from "./pages/SignUp";
 import SignIn from "./pages/SignIn";
-import Decks from "./pages/Decks";
+import Workspace from "./pages/Workspace";
 import CardsetDetail from "./pages/CardsetDetail";
 import CourseDetail from "./pages/CourseDetail";
 import SearchResults from "./pages/SearchResults";
+import { getStoredSession } from './lib/session.js';
 
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 
 const ProtectedRoute = ({ children }) => {
-  const session = localStorage.getItem('flashee_session');
+  const session = getStoredSession();
 
   if (!session) {
     return <Navigate to="/signin" replace />;
@@ -30,7 +31,7 @@ const App = () => {
           path="/workspace"
           element={(
             <ProtectedRoute>
-              <Decks />
+              <Workspace />
             </ProtectedRoute>
           )}
         />
