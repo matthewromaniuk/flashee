@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import {
   Button,
@@ -7,6 +7,7 @@ import {
   Flex,
   Form,
   Input,
+  InputNumber,
   Layout,
   Modal,
   Space,
@@ -17,6 +18,7 @@ import {
 } from 'antd' 
 import { ArrowLeftOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons'
 import LogoName from '../components/LogoName'
+import HeaderSearch from '../components/HeaderSearch'
 import Flashcard from '../components/Flashcard'
 import AppFooter from '../components/AppFooter'
 
@@ -29,6 +31,7 @@ const CardsetDetail = () => {
   const [cardsetName, setCardsetName] = useState('Deck Flashcards')
   const [flashcards, setFlashcards] = useState([])
   const [currentCardIndex, setCurrentCardIndex] = useState(0)
+  const [practiceMode, setPracticeMode] = useState(false)
   const [loading, setLoading] = useState(true)
   const [isEditOpen, setIsEditOpen] = useState(false)
   const [isCardsetEditOpen, setIsCardsetEditOpen] = useState(false)
@@ -36,6 +39,7 @@ const CardsetDetail = () => {
   const [deletingCardset, setDeletingCardset] = useState(false)
   const [editableFlashcards, setEditableFlashcards] = useState([])
   const [flashcardIdsToDelete, setFlashcardIdsToDelete] = useState([])
+  const [moveTargetsByFlashcardId, setMoveTargetsByFlashcardId] = useState({})
   const [editingFlashcard, setEditingFlashcard] = useState(null)
   const [savingEdit, setSavingEdit] = useState(false)
   const [editForm] = Form.useForm()
@@ -112,23 +116,31 @@ const CardsetDetail = () => {
     }
   }
 
+  const visibleFlashcards = useMemo(() => {
+    if (!practiceMode) {
+      return flashcards
+    }
+
+    return flashcards.filter((flashcard) => flashcard?.hasStatus === true && flashcard?.isCorrect === false)
+  }, [flashcards, practiceMode])
+
   useEffect(() => {
     fetchCardsetName()
     fetchFlashcards()
   }, [cardsetId])
 
   useEffect(() => {
-    if (flashcards.length === 0) {
+    if (visibleFlashcards.length === 0) {
       setCurrentCardIndex(0)
       return
     }
 
     setCurrentCardIndex((prevIndex) => {
       if (prevIndex < 0) return 0
-      if (prevIndex >= flashcards.length) return flashcards.length - 1
+      if (prevIndex >= visibleFlashcards.length) return visibleFlashcards.length - 1
       return prevIndex
     })
-  }, [flashcards])
+  }, [visibleFlashcards])
 
   const handleLogout = () => {
     localStorage.removeItem('flashee_session')
@@ -216,6 +228,17 @@ const CardsetDetail = () => {
       }
 
       message.success(isCorrect ? 'Marked correct' : 'Marked incorrect')
+      setFlashcards((prev) => prev.map((card) => (
+        String(card.id) === String(flashcardId)
+          ? { ...card, hasStatus: true, isCorrect }
+          : card
+      )))
+      setCurrentCardIndex((prevIndex) => {
+        if (visibleFlashcards.length <= 1) {
+          return prevIndex
+        }
+        return (prevIndex + 1) % visibleFlashcards.length
+      })
     } catch (_) {
       message.error('Could not update flashcard status.')
     }
@@ -227,6 +250,12 @@ const CardsetDetail = () => {
       newFlashcards: [],
     })
     setEditableFlashcards(flashcards)
+    setMoveTargetsByFlashcardId(
+      flashcards.reduce((acc, card, index) => {
+        acc[String(card.id)] = index + 1
+        return acc
+      }, {})
+    )
     setFlashcardIdsToDelete([])
     setIsCardsetEditOpen(true)
   }
@@ -236,13 +265,53 @@ const CardsetDetail = () => {
     cardsetForm.resetFields()
     setEditableFlashcards([])
     setFlashcardIdsToDelete([])
+    setMoveTargetsByFlashcardId({})
   }
 
   const removeExistingFlashcard = (flashcardId) => {
     setEditableFlashcards((prev) => prev.filter((card) => String(card.id) !== String(flashcardId)))
+    setMoveTargetsByFlashcardId((prev) => {
+      const next = { ...prev }
+      delete next[String(flashcardId)]
+      return next
+    })
     setFlashcardIdsToDelete((prev) => {
       if (prev.includes(flashcardId)) return prev
       return [...prev, flashcardId]
+    })
+  }
+
+  const moveExistingFlashcard = (flashcardId, targetIndexRaw) => {
+    setEditableFlashcards((prev) => {
+      const currentIndex = prev.findIndex((card) => String(card.id) === String(flashcardId))
+      if (currentIndex === -1) {
+        return prev
+      }
+
+      const maxIndex = prev.length
+      const parsedTarget = Number.parseInt(String(targetIndexRaw ?? ''), 10)
+      if (!Number.isFinite(parsedTarget) || parsedTarget < 1 || parsedTarget > maxIndex) {
+        message.error(`Move index must be between 1 and ${maxIndex}.`)
+        return prev
+      }
+
+      const targetIndex = parsedTarget - 1
+      if (targetIndex === currentIndex) {
+        return prev
+      }
+
+      const next = [...prev]
+      const [movedCard] = next.splice(currentIndex, 1)
+      next.splice(targetIndex, 0, movedCard)
+
+      setMoveTargetsByFlashcardId(
+        next.reduce((acc, card, index) => {
+          acc[String(card.id)] = index + 1
+          return acc
+        }, {})
+      )
+
+      return next
     })
   }
 
@@ -348,7 +417,7 @@ const CardsetDetail = () => {
       }
 
       message.success('Deck deleted')
-      navigate('/decks')
+      navigate('/workspace')
     } catch (_) {
       message.error('Could not delete deck.')
     } finally {
@@ -357,16 +426,16 @@ const CardsetDetail = () => {
   }
 
   const goToPreviousCard = () => {
-    if (flashcards.length <= 1) return
-    setCurrentCardIndex((prevIndex) => (prevIndex - 1 + flashcards.length) % flashcards.length)
+    if (visibleFlashcards.length <= 1) return
+    setCurrentCardIndex((prevIndex) => (prevIndex - 1 + visibleFlashcards.length) % visibleFlashcards.length)
   }
 
   const goToNextCard = () => {
-    if (flashcards.length <= 1) return
-    setCurrentCardIndex((prevIndex) => (prevIndex + 1) % flashcards.length)
+    if (visibleFlashcards.length <= 1) return
+    setCurrentCardIndex((prevIndex) => (prevIndex + 1) % visibleFlashcards.length)
   }
 
-  const currentFlashcard = flashcards[currentCardIndex] ?? null
+  const currentFlashcard = visibleFlashcards[currentCardIndex] ?? null
 
   return (
     <Layout style={{ minHeight: '100vh', width: '100%' }}>
@@ -375,7 +444,9 @@ const CardsetDetail = () => {
           <div style={{ cursor: 'pointer' }} onClick={() => navigate('/')}>
             <LogoName width={150} />
           </div>
-          <div style={{ flex: 1 }} />
+          <div style={{ flex: 1, display: 'flex', justifyContent: 'center', padding: '0 16px' }}>
+            <HeaderSearch />
+          </div>
           <Flex gap="small">
             <Button type="primary" onClick={handleLogout}>Log Out</Button>
           </Flex>
@@ -393,15 +464,16 @@ const CardsetDetail = () => {
           }}
         >
           <Flex vertical gap={20} style={{ width: '100%', maxWidth: 1160, margin: '8px auto 20px' }}>
-            <Flex>
-              <Button type="default" icon={<ArrowLeftOutlined />} onClick={() => navigate('/decks')}>
-                Back to Decks
-              </Button>
-            </Flex>
             <Flex align="center" justify="space-between" wrap gap={10}>
+              <Button type="default" icon={<ArrowLeftOutlined />} onClick={() => navigate('/workspace')}>
+                Back to Workspace
+              </Button>
               <Title level={3} style={{ margin: 0 }}>{cardsetName}</Title>
               <Flex gap="small" wrap>
                 <Button onClick={openCardsetEdit}>Edit Deck</Button>
+                <Button type={practiceMode ? 'primary' : 'default'} onClick={() => setPracticeMode((prev) => !prev)}>
+                  Practice Mode
+                </Button>
                 <Button danger loading={deletingCardset} onClick={deleteCurrentCardset}>Delete Deck</Button>
               </Flex>
             </Flex>
@@ -411,12 +483,17 @@ const CardsetDetail = () => {
               <Flex align="center" justify="center" style={{ minHeight: 200 }}>
                 <Spin size="large" />
               </Flex>
-            ) : flashcards.length === 0 ? (
-              <Empty description="No flashcards in this deck yet" />
+            ) : visibleFlashcards.length === 0 ? (
+              <Empty description={practiceMode ? 'No incorrectly marked flashcards to practice' : 'No flashcards in this deck yet'} />
             ) : (
               <Flex vertical gap={24} style={{ width: '100%' }}>
+                {practiceMode && (
+                  <Text strong style={{ color: '#1677ff' }}>
+                    Practice Mode: Incorrect only
+                  </Text>
+                )}
                 <Text type="secondary">
-                  Card {currentCardIndex + 1} of {flashcards.length}
+                  Card {currentCardIndex + 1} of {visibleFlashcards.length}
                 </Text>
                 <div style={{ width: '100%' }}>
                   <Flashcard
@@ -517,24 +594,45 @@ const CardsetDetail = () => {
                 <Text type="secondary">No flashcards currently in this deck.</Text>
               ) : (
                 <Space orientation="vertical" style={{ width: '100%' }} size={8}>
-                  {editableFlashcards.map((flashcard) => (
+                  {editableFlashcards.map((flashcard, index) => (
                     <Flex
                       key={flashcard.id}
                       align="center"
                       justify="space-between"
                       style={{ padding: '8px 10px', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 8 }}
                     >
-                      <div>
+                      <div style={{ flex: 1 }}>
+                        <Text type="secondary" style={{ display: 'block' }}>
+                          #{index + 1}
+                        </Text>
                         <Text strong>{flashcard.question ?? 'Untitled question'}</Text>
                         <Text type="secondary" style={{ display: 'block' }}>{flashcard.answer ?? ''}</Text>
                       </div>
-                      <Button
-                        danger
-                        icon={<DeleteOutlined />}
-                        onClick={() => removeExistingFlashcard(flashcard.id)}
-                      >
-                        Delete
-                      </Button>
+                      <Flex align="center" gap={8}>
+                        <InputNumber
+                          min={1}
+                          max={editableFlashcards.length}
+                          value={moveTargetsByFlashcardId[String(flashcard.id)] ?? index + 1}
+                          onChange={(value) => {
+                            setMoveTargetsByFlashcardId((prev) => ({
+                              ...prev,
+                              [String(flashcard.id)]: value,
+                            }))
+                          }}
+                          onPressEnter={() => moveExistingFlashcard(flashcard.id, moveTargetsByFlashcardId[String(flashcard.id)])}
+                          style={{ width: 90 }}
+                        />
+                        <Button onClick={() => moveExistingFlashcard(flashcard.id, moveTargetsByFlashcardId[String(flashcard.id)])}>
+                          Move
+                        </Button>
+                        <Button
+                          danger
+                          icon={<DeleteOutlined />}
+                          onClick={() => removeExistingFlashcard(flashcard.id)}
+                        >
+                          Delete
+                        </Button>
+                      </Flex>
                     </Flex>
                   ))}
                 </Space>

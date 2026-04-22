@@ -1,10 +1,11 @@
 import React from 'react';
-import Dashboard from "./pages/Dashboard";
 import Home from "./pages/Home";
 import SignUp from "./pages/SignUp";
 import SignIn from "./pages/SignIn";
 import Decks from "./pages/Decks";
 import CardsetDetail from "./pages/CardsetDetail";
+import CourseDetail from "./pages/CourseDetail";
+import SearchResults from "./pages/SearchResults";
 
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 
@@ -24,17 +25,9 @@ const App = () => {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/signup" element={<SignUp />} />
-        <Route
-          path="/dashboard"
-          element={(
-            <ProtectedRoute>
-              <Dashboard />
-            </ProtectedRoute>
-          )}
-        />
         <Route path="/signin" element={<SignIn />} />
         <Route
-          path="/decks"
+          path="/workspace"
           element={(
             <ProtectedRoute>
               <Decks />
@@ -42,10 +35,26 @@ const App = () => {
           )}
         />
         <Route
-          path="/decks/:cardsetId"
+          path="/workspace/:cardsetId"
           element={(
             <ProtectedRoute>
               <CardsetDetail />
+            </ProtectedRoute>
+          )}
+        />
+        <Route
+          path="/courses/:courseId"
+          element={(
+            <ProtectedRoute>
+              <CourseDetail />
+            </ProtectedRoute>
+          )}
+        />
+        <Route
+          path="/search"
+          element={(
+            <ProtectedRoute>
+              <SearchResults />
             </ProtectedRoute>
           )}
         />

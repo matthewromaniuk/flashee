@@ -45,7 +45,7 @@ const SignIn = () => {
         localStorage.setItem('flashee_user_id', result.user.id);
       }
 
-      navigate('/dashboard');
+      navigate('/workspace');
     } catch (error) {
       setApiError('Could not reach server. Make sure backend is running on port 3000.');
     } finally {

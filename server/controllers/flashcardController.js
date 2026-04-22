@@ -50,7 +50,30 @@ export async function listFlashcards(req, res) {
 		return res.status(500).json({ error: error.message })
 	}
 
-	return res.status(200).json({ flashcards: data })
+	const { data: statusRows, error: statusError } = await supabase
+		.from('flashcard_status')
+		.select('flashcard_id,isCorrect')
+		.eq('cardset_id', cardsetId)
+		.eq('user_email', authz.requesterEmail)
+
+	if (statusError) {
+		return res.status(500).json({ error: statusError.message })
+	}
+
+	const statusByFlashcardId = new Map(
+		(statusRows ?? []).map((status) => [String(status.flashcard_id), status])
+	)
+
+	const flashcardsWithStatus = (data ?? []).map((flashcard) => {
+		const status = statusByFlashcardId.get(String(flashcard.id))
+		return {
+			...flashcard,
+			hasStatus: Boolean(status),
+			isCorrect: typeof status?.isCorrect === 'boolean' ? status.isCorrect : null,
+		}
+	})
+
+	return res.status(200).json({ flashcards: flashcardsWithStatus })
 }
 
 export async function createFlashcard(req, res) {
@@ -65,7 +88,7 @@ export async function createFlashcard(req, res) {
 	if (!authz.allowed) return
 
 	const { isCorrect, ...flashcardFields } = payload
-	const initialIsCorrect = typeof isCorrect === 'boolean' ? isCorrect : false
+	const initialIsCorrect = false
 	const flashcardId = generateInt64Id()
 	const flashcardPayload = {
 		...flashcardFields,
@@ -142,7 +165,7 @@ export async function bulkCreateFlashcards(req, res) {
 				cardset_id: cardsetId,
 				id: generateInt64Id(),
 			},
-			isCorrect: typeof isCorrect === 'boolean' ? isCorrect : false,
+			isCorrect: false,
 		}
 	})
 

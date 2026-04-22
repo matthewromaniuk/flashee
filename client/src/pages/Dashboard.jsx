@@ -1,17 +1,12 @@
 import { useState } from 'react';
-import Navbar from "../components/Navbar";
 import { useNavigate } from 'react-router-dom';
-import { Button, Layout, theme, Flex, Typography, Grid } from 'antd';
+import { Button, Layout, theme, Flex, Typography } from 'antd';
 import LogoName from "../components/LogoName";
 import AppFooter from '../components/AppFooter';
-const { Header, Sider, Content } = Layout;
+const { Header, Content } = Layout;
 const { Title, Text } = Typography;
-const { useBreakpoint } = Grid;
 const Dashboard = () => {
   const navigate = useNavigate();
-  const [collapsed, setCollapsed] = useState(false);
-  const screens = useBreakpoint();
-  const isMobile = !screens.md;
   const {
     token: { colorBgContainer, headerBg },
   } = theme.useToken();
@@ -37,11 +32,6 @@ const Dashboard = () => {
           </Flex>
         </Header>
       <Layout style={{ flex: 1, minHeight: 0 }}>
-        {!isMobile && (
-          <Sider width="15%" style={{ background: colorBgContainer }}>
-            <Navbar />
-          </Sider>
-        )}
         <Content
          style={{
             margin: 0,
@@ -52,13 +42,8 @@ const Dashboard = () => {
           }}
         >
           <Flex vertical gap={16}>
-            {isMobile && (
-              <div style={{ maxWidth: 360 }}>
-                <Navbar mode="vertical" removeBorder />
-              </div>
-            )}
             <Title level={3} style={{ margin: 0 }}>Dashboard</Title>
-            <Text type="secondary">Choose Decks in the sidebar to manage and view your deck bubbles.</Text>
+            <Text type="secondary">Use Workspace to manage and view your deck bubbles.</Text>
           </Flex>
         </Content>
       </Layout>

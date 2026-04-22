@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Card, Button } from 'antd';
+import { useState } from 'react';
+import { Card } from 'antd';
 import {
   LeftOutlined,
   RightOutlined,

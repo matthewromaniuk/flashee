@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import Navbar from "../components/Navbar";
 import { useNavigate } from 'react-router-dom';
 import {
   Button,
@@ -18,26 +17,33 @@ import {
   Space,
   Empty,
   Spin,
-  Grid,
 } from 'antd';
 import { UploadOutlined, PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 import LogoName from "../components/LogoName";
+import HeaderSearch from '../components/HeaderSearch';
 import CardsetBubble from '../components/CardsetBubble';
+import FolderBubble from '../components/FolderBubble';
 import AppFooter from '../components/AppFooter';
-const { Header, Sider, Content } = Layout;
+const { Header, Content } = Layout;
 const { Text } = Typography;
-const { useBreakpoint } = Grid;
 
 const Decks = () => {
   const [isCreateDeckOpen, setIsCreateDeckOpen] = useState(false);
+  const [isCreateCourseOpen, setIsCreateCourseOpen] = useState(false);
+  const [isMoveDeckOpen, setIsMoveDeckOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [creatingCourse, setCreatingCourse] = useState(false);
+  const [movingDeck, setMovingDeck] = useState(false);
+  const [selectedCardsetForMove, setSelectedCardsetForMove] = useState(null);
   const [fileList, setFileList] = useState([]);
   const [cardsets, setCardsets] = useState([]);
+  const [courses, setCourses] = useState([]);
   const [loadingCardsets, setLoadingCardsets] = useState(true);
+  const [generationProgress, setGenerationProgress] = useState(null);
   const [form] = Form.useForm();
+  const [courseForm] = Form.useForm();
+  const [moveDeckForm] = Form.useForm();
   const selectedCreationMode = Form.useWatch('creationMode', form) ?? 'ai';
-  const screens = useBreakpoint();
-  const isMobile = !screens.md;
   const navigate = useNavigate();
   const {
     token: { colorBgContainer, headerBg },
@@ -75,8 +81,37 @@ const Decks = () => {
     }
   };
 
+  const fetchCourses = async () => {
+    const userId = localStorage.getItem('flashee_user_id');
+    const userEmail = localStorage.getItem('flashee_user_email');
+
+    if (!userId || !userEmail) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/courses/user/${userId}`, {
+        headers: {
+          'x-user-id': userId,
+          'x-user-email': userEmail,
+        },
+      });
+
+      const result = await response.json();
+      if (!response.ok) {
+        message.error(result.error || 'Failed to load courses');
+        return;
+      }
+
+      setCourses(result.courses ?? []);
+    } catch (_) {
+      message.error('Could not load courses from server.');
+    }
+  };
+
   useEffect(() => {
     fetchCardsets();
+    fetchCourses();
   }, []);
 
   const openCreateDeckModal = () => {
@@ -87,13 +122,264 @@ const Decks = () => {
     setIsCreateDeckOpen(false);
   };
 
+  const openCreateCourseModal = () => {
+    setIsCreateCourseOpen(true);
+  };
+
+  const closeCreateCourseModal = () => {
+    setIsCreateCourseOpen(false);
+    courseForm.resetFields();
+  };
+
+  const openMoveDeckModal = (cardset) => {
+    setSelectedCardsetForMove(cardset);
+    moveDeckForm.setFieldsValue({
+      courseId: cardset?.course_id ? String(cardset.course_id) : '__none__',
+    });
+    setIsMoveDeckOpen(true);
+  };
+
+  const closeMoveDeckModal = () => {
+    setIsMoveDeckOpen(false);
+    setSelectedCardsetForMove(null);
+    moveDeckForm.resetFields();
+  };
+
+  const onMoveDeckToCourse = async () => {
+    if (!selectedCardsetForMove?.id) {
+      return;
+    }
+
+    try {
+      setMovingDeck(true);
+      const values = await moveDeckForm.validateFields();
+      const userEmail = localStorage.getItem('flashee_user_email');
+
+      if (!userEmail) {
+        message.error('No signed-in user found. Please sign in again.');
+        return;
+      }
+
+      const nextCourseId = values.courseId === '__none__' ? null : values.courseId;
+
+      const response = await fetch(`/api/cardsets/${selectedCardsetForMove.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-email': userEmail,
+        },
+        body: JSON.stringify({
+          course_id: nextCourseId,
+        }),
+      });
+
+      const result = await response.json();
+      if (!response.ok) {
+        message.error(result.error || 'Could not move deck to course');
+        return;
+      }
+
+      setCardsets((prev) => prev.map((item) => {
+        if (String(item.id) !== String(selectedCardsetForMove.id)) {
+          return item;
+        }
+
+        return {
+          ...item,
+          course_id: result?.cardset?.course_id ?? nextCourseId,
+        };
+      }));
+
+      message.success(nextCourseId ? 'Deck moved to course' : 'Deck removed from course');
+      closeMoveDeckModal();
+    } catch (_) {
+      // Form validation handles user feedback.
+    } finally {
+      setMovingDeck(false);
+    }
+  };
+
+  const onCreateCourse = async () => {
+    try {
+      setCreatingCourse(true);
+      const values = await courseForm.validateFields();
+      const userEmail = localStorage.getItem('flashee_user_email');
+
+      if (!userEmail) {
+        message.error('No signed-in user found. Please sign in again.');
+        return;
+      }
+
+      const response = await fetch('/api/courses', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-email': userEmail,
+        },
+        body: JSON.stringify({
+          name: values.name.trim(),
+          description: (values.description ?? '').trim(),
+          isPublic: values.isPublic ?? false,
+        }),
+      });
+
+      const result = await response.json();
+      if (!response.ok) {
+        message.error(result.error || 'Course creation failed');
+        return;
+      }
+
+      setCourses((prev) => [...prev, result.course]);
+
+      message.success('Course created');
+      closeCreateCourseModal();
+    } catch (_) {
+      // Form validation handles user feedback.
+    } finally {
+      setCreatingCourse(false);
+    }
+  };
+
   const handleFileChange = ({ fileList: nextFileList }) => {
     setFileList(nextFileList.slice(-1));
+  };
+
+  const readTextFile = async (file) => {
+    if (!file) {
+      return '';
+    }
+
+    return file.text();
+  };
+
+  const streamAiFlashcards = (formData, headers, requestedFlashcardCount) => {
+    return new Promise((resolve, reject) => {
+      const eventSource = new EventSource('/api/ai/flashcards-stream');
+      const flashcards = [];
+      let hasEnded = false;
+
+      const cleanup = () => {
+        eventSource.close();
+        hasEnded = true;
+      };
+
+      eventSource.addEventListener('message', (event) => {
+        try {
+          const data = JSON.parse(event.data);
+
+          if (data.type === 'progress') {
+            setGenerationProgress({
+              current: data.current,
+              maximum: data.maximum,
+            });
+          } else if (data.type === 'complete') {
+            flashcards.push(...(data.flashcards || []));
+            cleanup();
+            resolve({
+              flashcards: data.flashcards || [],
+              count: data.count,
+              warning: data.warning,
+            });
+          } else if (data.type === 'error') {
+            cleanup();
+            reject(new Error(data.error));
+          } else if (data.error) {
+            cleanup();
+            reject(new Error(data.error));
+          }
+        } catch (error) {
+          cleanup();
+          reject(error);
+        }
+      });
+
+      eventSource.addEventListener('error', () => {
+        if (!hasEnded) {
+          cleanup();
+          reject(new Error('Connection to AI service lost'));
+        }
+      });
+
+      // Send the request as a regular fetch with the formData
+      // Note: EventSource doesn't support POST, so we'll use a different approach
+      // Instead, we'll make a POST request and manually parse SSE from the response
+    });
+  };
+
+  const fetchAiFlashcardsWithProgress = async (formData, headers, requestedFlashcardCount) => {
+    return new Promise((resolve, reject) => {
+      fetch('/api/ai/flashcards-stream', {
+        method: 'POST',
+        body: formData,
+        headers,
+      })
+        .then((response) => {
+          if (!response.ok && response.status !== 200) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+
+          const reader = response.body.getReader();
+          const decoder = new TextDecoder();
+          let buffer = '';
+
+          const processChunk = async () => {
+            const { done, value } = await reader.read();
+
+            if (done) {
+              resolve({
+                flashcards: [],
+                count: 0,
+                warning: 'Stream ended without receiving flashcards',
+              });
+              return;
+            }
+
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+
+            // Keep the last incomplete line in the buffer
+            buffer = lines.pop() || '';
+
+            for (const line of lines) {
+              if (line.startsWith('data: ')) {
+                try {
+                  const data = JSON.parse(line.slice(6));
+
+                  if (data.type === 'progress') {
+                    setGenerationProgress({
+                      current: data.current,
+                      maximum: data.maximum,
+                    });
+                  } else if (data.type === 'complete') {
+                    resolve({
+                      flashcards: data.flashcards || [],
+                      count: data.count,
+                      warning: data.warning,
+                    });
+                    return;
+                  } else if (data.type === 'error' || data.error) {
+                    reject(new Error(data.error || 'Generation failed'));
+                    return;
+                  }
+                } catch (e) {
+                  console.warn('Failed to parse SSE data:', line, e);
+                }
+              }
+            }
+
+            await processChunk();
+          };
+
+          processChunk().catch(reject);
+        })
+        .catch(reject);
+    });
   };
 
   const onCreateDeck = async () => {
     try {
       setSubmitting(true);
+      setGenerationProgress(null);
       const values = await form.validateFields();
       const userEmail = localStorage.getItem('flashee_user_email');
 
@@ -126,28 +412,20 @@ const Decks = () => {
       let aiFlashcards = [];
 
       if (creationMode === 'ai' && selectedFile) {
-        const aiResponse = await fetch('/api/ai/flashcards', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/octet-stream',
-            'x-user-email': userEmail,
-            'x-file-name': selectedFile.name,
-            'x-file-type': selectedFile.type || 'application/octet-stream',
-            'x-ai-keywords': aiKeywords.join(','),
-            'x-ai-flashcard-count': String(requestedFlashcardCount),
-          },
-          body: await selectedFile.arrayBuffer(),
-        });
+        // Send file as multipart/form-data and let backend extract text
+        const formData = new FormData();
+        formData.append('file', selectedFile);
+        formData.append('keywords', JSON.stringify(aiKeywords));
+        formData.append('flashcardCount', String(requestedFlashcardCount));
 
-        const aiResult = await aiResponse.json();
-        if (!aiResponse.ok) {
-          if (manualFlashcards.length === 0) {
-            message.error(aiResult.error || 'AI flashcard generation failed.');
-            return;
-          }
+        const headers = {
+          'x-user-email': userEmail,
+          'x-ai-keywords': aiKeywords.join(','),
+          'x-ai-flashcard-count': String(requestedFlashcardCount),
+        };
 
-          message.warning(aiResult.error || 'AI flashcard generation failed. Continuing with manual flashcards.');
-        } else {
+        try {
+          const aiResult = await fetchAiFlashcardsWithProgress(formData, headers, requestedFlashcardCount);
           aiFlashcards = (aiResult.flashcards ?? [])
             .filter((item) => item?.question?.trim() && item?.answer?.trim())
             .map((item) => ({
@@ -156,39 +434,106 @@ const Decks = () => {
             }));
 
           if (aiFlashcards.length === 0 && manualFlashcards.length === 0) {
-            message.error('The AI did not return any flashcards for the selected document.');
+            message.error('The AI did not return any flashcards for the uploaded file.');
             return;
           }
 
           if (aiFlashcards.length === 0 && manualFlashcards.length > 0) {
-            message.warning('The AI did not return any flashcards for the selected document. Saving manual flashcards.');
+            message.warning('The AI did not return any flashcards for the uploaded file. Saving manual flashcards.');
           }
-        }
-      } else if (creationMode === 'ai' && aiKeywords.length > 0) {
-        const aiResponse = await fetch('/api/ai/flashcards', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-user-email': userEmail,
-          },
-          body: JSON.stringify({
-            documentText: `Generate flashcards focused on these keywords:\n${aiKeywords.map((keyword) => `- ${keyword}`).join('\n')}`,
-            fileName: 'ai-keywords.txt',
-            mimeType: 'text/plain',
-            keywords: aiKeywords,
-            flashcardCount: requestedFlashcardCount,
-          }),
-        });
 
-        const aiResult = await aiResponse.json();
-        if (!aiResponse.ok) {
+          if (aiResult.warning) {
+            console.warn('[Decks] Generation warning:', aiResult.warning);
+          }
+        } catch (error) {
           if (manualFlashcards.length === 0) {
-            message.error(aiResult.error || 'AI flashcard generation failed.');
+            message.error(error.message || 'AI flashcard generation failed.');
             return;
           }
 
-          message.warning(aiResult.error || 'AI flashcard generation failed. Continuing with manual flashcards.');
-        } else {
+          message.warning(error.message || 'AI flashcard generation failed. Continuing with manual flashcards.');
+        }
+      } else if (creationMode === 'ai' && aiKeywords.length > 0) {
+        const requestBody = {
+          documentText: `Generate flashcards focused on these keywords:\n${aiKeywords.map((keyword) => `- ${keyword}`).join('\n')}`,
+          keywords: aiKeywords,
+          flashcardCount: requestedFlashcardCount,
+        };
+
+        const headers = {
+          'Content-Type': 'application/json',
+          'x-user-email': userEmail,
+        };
+
+        try {
+          const aiResult = await new Promise((resolve, reject) => {
+            fetch('/api/ai/flashcards-stream', {
+              method: 'POST',
+              body: JSON.stringify(requestBody),
+              headers,
+            })
+              .then((response) => {
+                if (!response.ok && response.status !== 200) {
+                  throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let buffer = '';
+
+                const processChunk = async () => {
+                  const { done, value } = await reader.read();
+
+                  if (done) {
+                    resolve({
+                      flashcards: [],
+                      count: 0,
+                      warning: 'Stream ended without receiving flashcards',
+                    });
+                    return;
+                  }
+
+                  buffer += decoder.decode(value, { stream: true });
+                  const lines = buffer.split('\n');
+
+                  // Keep the last incomplete line in the buffer
+                  buffer = lines.pop() || '';
+
+                  for (const line of lines) {
+                    if (line.startsWith('data: ')) {
+                      try {
+                        const data = JSON.parse(line.slice(6));
+
+                        if (data.type === 'progress') {
+                          setGenerationProgress({
+                            current: data.current,
+                            maximum: data.maximum,
+                          });
+                        } else if (data.type === 'complete') {
+                          resolve({
+                            flashcards: data.flashcards || [],
+                            count: data.count,
+                            warning: data.warning,
+                          });
+                          return;
+                        } else if (data.type === 'error' || data.error) {
+                          reject(new Error(data.error || 'Generation failed'));
+                          return;
+                        }
+                      } catch (e) {
+                        console.warn('Failed to parse SSE data:', line, e);
+                      }
+                    }
+                  }
+
+                  await processChunk();
+                };
+
+                processChunk().catch(reject);
+              })
+              .catch(reject);
+          });
+
           aiFlashcards = (aiResult.flashcards ?? [])
             .filter((item) => item?.question?.trim() && item?.answer?.trim())
             .map((item) => ({
@@ -204,6 +549,17 @@ const Decks = () => {
           if (aiFlashcards.length === 0 && manualFlashcards.length > 0) {
             message.warning('The AI did not return any flashcards for the provided tags. Saving manual flashcards.');
           }
+
+          if (aiResult.warning) {
+            console.warn('[Decks] Generation warning:', aiResult.warning);
+          }
+        } catch (error) {
+          if (manualFlashcards.length === 0) {
+            message.error(error.message || 'AI flashcard generation failed.');
+            return;
+          }
+
+          message.warning(error.message || 'AI flashcard generation failed. Continuing with manual flashcards.');
         }
       } else if (creationMode === 'ai') {
         message.error('Upload a source file or provide AI tags for generation.');
@@ -267,12 +623,15 @@ const Decks = () => {
       message.success(successMessage);
       form.resetFields();
       setFileList([]);
+      setGenerationProgress(null);
       closeCreateDeckModal();
       fetchCardsets();
     } catch (_) {
       // Validation errors are displayed by Form.Item automatically.
+      setGenerationProgress(null);
     } finally {
       setSubmitting(false);
+      setGenerationProgress(null);
     }
   };
 
@@ -283,18 +642,15 @@ const Decks = () => {
             <div style={{cursor: 'pointer'}} onClick={() => navigate('/')}>
               <LogoName width={150}/>
             </div>
-            <div style={{ flex: 1}} /> {}
+            <div style={{ flex: 1, display: 'flex', justifyContent: 'center', padding: '0 16px' }}>
+              <HeaderSearch />
+            </div>
             <Flex gap="small">
-              <Button type="primary" onClick={() => navigate('/')}>Log Out<output></output></Button>
+              <Button type="primary" onClick={() => navigate('/signin')}>Log Out</Button>
             </Flex>
           </Flex>
         </Header>
       <Layout style={{ flex: 1, minHeight: 0 }}>
-        {!isMobile && (
-          <Sider width="15%" style={{background: colorBgContainer}}>
-            <Navbar />
-          </Sider>
-        )}
         <Content
          style={{
             margin: 0,
@@ -305,42 +661,70 @@ const Decks = () => {
           }}
         >
           <Flex vertical gap={18}>
-            {isMobile && (
-              <div style={{ maxWidth: 360 }}>
-                <Navbar mode="vertical" removeBorder />
-              </div>
-            )}
             <Flex align="center" justify="space-between" wrap>
-              <Text style={{ fontSize: 18, fontWeight: 600 }}>Your Decks</Text>
-              <Button type="primary" icon={<PlusOutlined />} onClick={openCreateDeckModal}>
-                Create Deck
-              </Button>
+              <Text style={{ fontSize: 18, fontWeight: 600 }}>Workspace</Text>
+              <Space>
+                <Button type="default" icon={<PlusOutlined />} onClick={openCreateCourseModal}>
+                  Create Course
+                </Button>
+                <Button type="primary" icon={<PlusOutlined />} onClick={openCreateDeckModal}>
+                  Create Deck
+                </Button>
+              </Space>
             </Flex>
             <Text type="secondary">
-              Build a deck manually or attach source material for AI-assisted card generation.
+              Build a deck manually or upload plain text for AI-assisted card generation.
             </Text>
             {loadingCardsets ? (
               <Flex align="center" justify="center" style={{ minHeight: 200 }}>
                 <Spin size="large" />
               </Flex>
-            ) : !cardsets || cardsets.length === 0 ? (
-              <Empty description="No decks yet" />
             ) : (
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))',
-                  gap: 16,
-                }}
-              >
-                {cardsets.map((cardset) => (
-                  <CardsetBubble
-                    key={cardset.id}
-                    cardset={cardset}
-                    onClick={() => navigate(`/decks/${cardset.id}`)}
-                  />
-                ))}
-              </div>
+              <>
+                <Text style={{ fontSize: 18, fontWeight: 600 }}>Your Courses</Text>
+                {courses.length === 0 ? (
+                  <Empty description="No courses yet" />
+                ) : (
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))',
+                      gap: 16,
+                    }}
+                  >
+                    {courses.map((course) => (
+                      <FolderBubble
+                        key={course.id}
+                        folder={course}
+                        onClick={() => navigate(`/courses/${course.id}`)}
+                      />
+                    ))}
+                  </div>
+                )}
+
+                <Text style={{ fontSize: 18, fontWeight: 600, marginTop: 8 }}>Your Decks</Text>
+                {(!cardsets || cardsets.length === 0) ? (
+                  <Empty description="No decks yet" />
+                ) : (
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))',
+                      gap: 16,
+                    }}
+                  >
+                    {cardsets.map((cardset) => (
+                      <CardsetBubble
+                        key={cardset.id}
+                        cardset={cardset}
+                        onClick={() => navigate(`/workspace/${cardset.id}`)}
+                        onMoveToCourse={openMoveDeckModal}
+                        courseName={courses.find((course) => String(course.id) === String(cardset.course_id))?.name}
+                      />
+                    ))}
+                  </div>
+                )}
+              </>
             )}
           </Flex>
 
@@ -409,22 +793,23 @@ const Decks = () => {
                 <>
                   <div style={{ marginBottom: 12 }}>
                     <Text strong style={{ fontSize: 16 }}>
-                      AI-generated (upload file and tags)
+                      AI-generated (upload text and tags)
                     </Text>
                     <Text type="secondary" style={{ display: 'block' }}>
-                      Provide source material or tags so the AI can suggest flashcards automatically.
+                      Provide plain text or tags so the AI can suggest flashcards automatically.
                     </Text>
                   </div>
 
                   <Form.Item
                     label="Source File"
-                    help="Optional: upload a file to help generate flashcards with AI"
+                    help="Upload a PDF, Word document, PowerPoint, or text file to generate flashcards with AI"
                   >
                     <Upload
                       beforeUpload={() => false}
                       fileList={fileList}
                       onChange={handleFileChange}
                       maxCount={1}
+                      accept=".txt,.pdf,.docx,.pptx,text/plain,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.presentationml.presentation"
                     >
                       <Button icon={<UploadOutlined />}>Choose File</Button>
                     </Upload>
@@ -437,6 +822,8 @@ const Decks = () => {
                   >
                     <Select
                       mode="tags"
+                      open={false}
+                      suffixIcon={null}
                       placeholder="Examples: neuroscience, chapter-2, exam-review"
                       tokenSeparators={[',']}
                     />
@@ -449,6 +836,14 @@ const Decks = () => {
                   >
                     <InputNumber min={1} max={50} style={{ width: '100%' }} />
                   </Form.Item>
+
+                  {generationProgress && (
+                    <div style={{ marginTop: 16, padding: '12px', backgroundColor: '#f0f5ff', borderRadius: '4px' }}>
+                      <Text strong style={{ color: '#1890ff' }}>
+                        Generating flashcard {generationProgress.current} of {generationProgress.maximum}...
+                      </Text>
+                    </div>
+                  )}
                 </>
               )}
 
@@ -516,6 +911,78 @@ const Decks = () => {
                   </Form.List>
                 </>
               )}
+            </Form>
+          </Modal>
+
+          <Modal
+            title="Create Course"
+            open={isCreateCourseOpen}
+            onCancel={closeCreateCourseModal}
+            onOk={onCreateCourse}
+            okText="Create"
+            confirmLoading={creatingCourse}
+            destroyOnHidden
+          >
+            <Form
+              form={courseForm}
+              layout="vertical"
+              initialValues={{
+                isPublic: false,
+              }}
+            >
+              <Form.Item
+                name="name"
+                label="Course Name"
+                rules={[{ required: true, message: 'Please enter a course name' }]}
+              >
+                <Input placeholder="Example: Organic Chemistry" />
+              </Form.Item>
+
+              <Form.Item
+                name="description"
+                label="Description"
+              >
+                <Input.TextArea rows={4} placeholder="Short summary of this course folder" />
+              </Form.Item>
+
+              <Form.Item
+                name="isPublic"
+                label="Visibility"
+                rules={[{ required: true, message: 'Please select a visibility option' }]}
+              >
+                <Radio.Group optionType="button" buttonStyle="solid">
+                  <Radio value={false}>Private</Radio>
+                  <Radio value={true}>Public</Radio>
+                </Radio.Group>
+              </Form.Item>
+            </Form>
+          </Modal>
+
+          <Modal
+            title={selectedCardsetForMove ? `Move "${selectedCardsetForMove.name}"` : 'Move Deck'}
+            open={isMoveDeckOpen}
+            onCancel={closeMoveDeckModal}
+            onOk={onMoveDeckToCourse}
+            okText="Save"
+            confirmLoading={movingDeck}
+            destroyOnHidden
+          >
+            <Form form={moveDeckForm} layout="vertical">
+              <Form.Item
+                name="courseId"
+                label="Course"
+                rules={[{ required: true, message: 'Please select a course or none' }]}
+              >
+                <Select
+                  options={[
+                    { value: '__none__', label: 'None (not in a course)' },
+                    ...courses.map((course) => ({
+                      value: String(course.id),
+                      label: course.name,
+                    })),
+                  ]}
+                />
+              </Form.Item>
             </Form>
           </Modal>
         </Content>

@@ -35,11 +35,25 @@ export async function getCardsetsByUserEmail(req, res) {
 	return res.status(200).json({ cardsets })
 }
 
+export async function getPublicCardsets(req, res) {
+	const { data, error } = await supabase
+		.from('cardset')
+		.select('*')
+		.eq('isPublic', true)
+
+	if (error) {
+		return res.status(500).json({ error: error.message })
+	}
+
+	return res.status(200).json({ cardsets: data ?? [] })
+}
+
 export async function createCardset(req, res) {
 	const payload = req.body ?? {}
-	const { tags, source_file_name, user_email, ...cardsetFields } = payload
+	const { tags, source_file_name, user_email, course_id, ...cardsetFields } = payload
 	const requesterEmail = getRequesterEmail(req)
 	const cardsetId = generateInt64Id()
+	const normalizedCourseId = course_id == null || course_id === '' ? null : String(course_id)
 
 	if (!requesterEmail) {
 		return res.status(400).json({ error: 'Requester email is required (x-user-email header, query email, or body user_email)' })
@@ -47,7 +61,7 @@ export async function createCardset(req, res) {
 
 	const { data, error } = await supabase
 		.from('cardset')
-		.insert({ ...cardsetFields, id: cardsetId })
+		.insert({ ...cardsetFields, id: cardsetId, course_id: normalizedCourseId })
 		.select('*')
 
 	if (error) {
@@ -78,9 +92,10 @@ export async function createCardset(req, res) {
 
 export async function createDeck(req, res) {
 	const payload = req.body ?? {}
-	const { tags, source_file_name, user_email, ...cardsetFields } = payload
+	const { tags, source_file_name, user_email, course_id, ...cardsetFields } = payload
 	const requesterEmail = getRequesterEmail(req)
 	const cardsetId = generateInt64Id()
+	const normalizedCourseId = course_id == null || course_id === '' ? null : String(course_id)
 
 	if (!requesterEmail) {
 		return res.status(400).json({ error: 'Requester email is required (x-user-email header, query email, or body user_email)' })
@@ -92,7 +107,7 @@ export async function createDeck(req, res) {
 
 	const { data, error } = await supabase
 		.from('cardset')
-		.insert({ ...cardsetFields, id: cardsetId })
+		.insert({ ...cardsetFields, id: cardsetId, course_id: normalizedCourseId })
 		.select('*')
 
 	if (error) {
@@ -188,9 +203,14 @@ export async function updateCardset(req, res) {
 	if (typeof payload.isPublic === 'boolean') {
 		updatePayload.isPublic = payload.isPublic
 	}
+	if (Object.prototype.hasOwnProperty.call(payload, 'course_id')) {
+		updatePayload.course_id = payload.course_id == null || payload.course_id === ''
+			? null
+			: String(payload.course_id)
+	}
 
 	if (Object.keys(updatePayload).length === 0) {
-		return res.status(400).json({ error: 'Provide at least one editable field (name, isPublic)' })
+		return res.status(400).json({ error: 'Provide at least one editable field (name, isPublic, course_id)' })
 	}
 
 	const { data, error } = await supabase
