@@ -81,6 +81,18 @@ const SearchResults = () => {
         return;
       }
 
+      if (!publicCoursesResponse.ok) {
+        message.error(publicCoursesResult.error || 'Failed to load public courses');
+        setLoading(false);
+        return;
+      }
+
+      if (!publicCardsetsResponse.ok) {
+        message.error(publicCardsetsResult.error || 'Failed to load public decks');
+        setLoading(false);
+        return;
+      }
+
       const yourCourseIds = new Set((coursesResult.courses ?? []).map((course) => String(course.id)));
       const yourDeckIds = new Set((cardsetsResult.cardsets ?? []).map((cardset) => String(cardset.id)));
 

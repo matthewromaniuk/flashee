@@ -5,7 +5,8 @@
   "main": "server.js",
   "scripts": {
     "test": "node --test tests/authController.test.js",
-    "start": "node server.js"
+    "start": "node server.js",
+    "seed:data": "node scripts/seedData.js"
   },
   "keywords": [],
   "author": "",

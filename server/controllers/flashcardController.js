@@ -7,11 +7,39 @@ import {
 	getRequesterEmail,
 } from '../lib/cardsetPermissions.js'
 
+async function getCardsetAccessContext(cardsetId) {
+	const { data, error } = await supabase
+		.from('cardset')
+		.select('id,isPublic')
+		.eq('id', cardsetId)
+		.maybeSingle()
+
+	return { cardset: data, error }
+}
+
 async function authorizeCardsetAccess(req, res, cardsetId, mode) {
+	const { cardset, error: cardsetError } = await getCardsetAccessContext(cardsetId)
+
+	if (cardsetError) {
+		return res.status(500).json({ error: cardsetError.message })
+	}
+
+	if (!cardset) {
+		return res.status(404).json({ error: 'Cardset not found' })
+	}
+
 	const requesterEmail = getRequesterEmail(req)
 
+	if (mode === 'read' && cardset.isPublic) {
+		return { allowed: true, role: null, requesterEmail }
+	}
+
 	if (!requesterEmail) {
-		res.status(400).json({ error: 'Requester email is required (x-user-email header, query email, or body user_email)' })
+		res.status(mode === 'read' ? 403 : 400).json({
+			error: mode === 'read'
+				? 'Insufficient permissions for this cardset'
+				: 'Requester email is required (x-user-email header, query email, or body user_email)',
+		})
 		return { allowed: false }
 	}
 
@@ -50,19 +78,23 @@ export async function listFlashcards(req, res) {
 		return res.status(500).json({ error: error.message })
 	}
 
-	const { data: statusRows, error: statusError } = await supabase
-		.from('flashcard_status')
-		.select('flashcard_id,isCorrect')
-		.eq('cardset_id', cardsetId)
-		.eq('user_email', authz.requesterEmail)
+	const statusByFlashcardId = new Map()
 
-	if (statusError) {
-		return res.status(500).json({ error: statusError.message })
+	if (authz.requesterEmail) {
+		const { data: statusRows, error: statusError } = await supabase
+			.from('flashcard_status')
+			.select('flashcard_id,isCorrect')
+			.eq('cardset_id', cardsetId)
+			.eq('user_email', authz.requesterEmail)
+
+		if (statusError) {
+			return res.status(500).json({ error: statusError.message })
+		}
+
+		for (const status of statusRows ?? []) {
+			statusByFlashcardId.set(String(status.flashcard_id), status)
+		}
 	}
-
-	const statusByFlashcardId = new Map(
-		(statusRows ?? []).map((status) => [String(status.flashcard_id), status])
-	)
 
 	const flashcardsWithStatus = (data ?? []).map((flashcard) => {
 		const status = statusByFlashcardId.get(String(flashcard.id))
@@ -217,6 +249,10 @@ export async function updateFlashcardStatus(req, res) {
 
 	const authz = await authorizeCardsetAccess(req, res, cardsetId, 'read')
 	if (!authz.allowed) return
+
+	if (!authz.requesterEmail) {
+		return res.status(400).json({ error: 'Requester email is required to update flashcard status' })
+	}
 
 	const { data: flashcard, error: flashcardError } = await supabase
 		.from('flashcard')

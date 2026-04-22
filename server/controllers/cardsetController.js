@@ -229,3 +229,104 @@ export async function updateCardset(req, res) {
 
 	return res.status(200).json({ cardset: data[0] })
 }
+
+export async function forkCardset(req, res) {
+	const { id } = req.params
+	const requesterEmail = getRequesterEmail(req)
+
+	if (!id) {
+		return res.status(400).json({ error: 'Path parameter "id" is required' })
+	}
+
+	if (!requesterEmail) {
+		return res.status(400).json({ error: 'Requester email is required (x-user-email header, query email, or body user_email)' })
+	}
+
+	// Get the source cardset
+	const { data: sourceCardset, error: fetchError } = await supabase
+		.from('cardset')
+		.select('*')
+		.eq('id', id)
+		.single()
+
+	if (fetchError) {
+		return res.status(404).json({ error: 'Source cardset not found' })
+	}
+
+	if (!sourceCardset) {
+		return res.status(404).json({ error: 'Source cardset not found' })
+	}
+
+	// Generate new ID for forked cardset
+	const forkedCardsetId = generateInt64Id()
+
+	// Create new cardset with same metadata but new ID
+	const { data: newCardset, error: createError } = await supabase
+		.from('cardset')
+		.insert({
+			id: forkedCardsetId,
+			name: sourceCardset.name,
+			description: sourceCardset.description,
+			isPublic: sourceCardset.isPublic,
+			course_id: sourceCardset.course_id,
+		})
+		.select('*')
+
+	if (createError) {
+		return res.status(400).json({ error: 'Failed to create forked cardset: ' + createError.message })
+	}
+
+	const createdCardset = newCardset?.[0]
+	if (!createdCardset) {
+		return res.status(500).json({ error: 'Cardset forked but id missing in response' })
+	}
+
+	// Get all flashcards from source cardset
+	const { data: sourceFlashcards, error: flashcardFetchError } = await supabase
+		.from('flashcard')
+		.select('*')
+		.eq('cardset_id', id)
+
+	if (flashcardFetchError) {
+		// Clean up: delete the created cardset
+		await supabase.from('cardset').delete().eq('id', forkedCardsetId)
+		return res.status(500).json({ error: 'Failed to fetch flashcards: ' + flashcardFetchError.message })
+	}
+
+	// Copy flashcards to new cardset
+	if (sourceFlashcards && sourceFlashcards.length > 0) {
+		const flashcardsToInsert = sourceFlashcards.map((flashcard) => ({
+			id: generateInt64Id(),
+			cardset_id: forkedCardsetId,
+			question: flashcard.question,
+			answer: flashcard.answer,
+		}))
+
+		const { error: flashcardCreateError } = await supabase
+			.from('flashcard')
+			.insert(flashcardsToInsert)
+
+		if (flashcardCreateError) {
+			// Clean up: delete the created cardset
+			await supabase.from('cardset').delete().eq('id', forkedCardsetId)
+			return res.status(500).json({ error: 'Failed to copy flashcards: ' + flashcardCreateError.message })
+		}
+	}
+
+	// Create card_user entry for requester as owner
+	const { error: relationError } = await supabase
+		.from('card_user')
+		.insert({
+			user_email: requesterEmail,
+			cardset_id: forkedCardsetId,
+			role: 'owner',
+		})
+
+	if (relationError) {
+		// Clean up: delete the created cardset (flashcards will cascade)
+		await supabase.from('cardset').delete().eq('id', forkedCardsetId)
+		return res.status(400).json({ error: 'Failed to set ownership: ' + relationError.message })
+	}
+
+	return res.status(201).json({ cardset: createdCardset })
+}

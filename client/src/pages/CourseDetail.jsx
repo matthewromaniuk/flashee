@@ -30,6 +30,7 @@ const CourseDetail = () => {
   const [loading, setLoading] = useState(true);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [savingEdit, setSavingEdit] = useState(false);
+  const [canEditCourse, setCanEditCourse] = useState(false);
   const [editForm] = Form.useForm();
 
   const {
@@ -48,7 +49,7 @@ const CourseDetail = () => {
     }
 
     try {
-      const [coursesResponse, cardsetsResponse] = await Promise.all([
+      const [coursesResponse, cardsetsResponse, publicCoursesResponse, publicCardsetsResponse] = await Promise.all([
         fetch(`/api/courses/user/${userId}`, {
           headers: {
             'x-user-id': userId,
@@ -61,10 +62,14 @@ const CourseDetail = () => {
             'x-user-email': userEmail,
           },
         }),
+        fetch('/api/courses/public'),
+        fetch('/api/cardsets/public'),
       ]);
 
       const coursesResult = await coursesResponse.json();
       const cardsetsResult = await cardsetsResponse.json();
+      const publicCoursesResult = await publicCoursesResponse.json();
+      const publicCardsetsResult = await publicCardsetsResponse.json();
 
       if (!coursesResponse.ok) {
         message.error(coursesResult.error || 'Failed to load course details');
@@ -78,15 +83,36 @@ const CourseDetail = () => {
         return;
       }
 
+      if (!publicCoursesResponse.ok) {
+        message.error(publicCoursesResult.error || 'Failed to load public courses');
+        setLoading(false);
+        return;
+      }
+
+      if (!publicCardsetsResponse.ok) {
+        message.error(publicCardsetsResult.error || 'Failed to load public decks');
+        setLoading(false);
+        return;
+      }
+
       const selectedCourse = (coursesResult.courses ?? []).find(
         (item) => String(item.id) === String(courseId)
       );
 
-      const filteredDecks = (cardsetsResult.cardsets ?? []).filter(
+      const selectedPublicCourse = (publicCoursesResult.courses ?? []).find(
+        (item) => String(item.id) === String(courseId)
+      );
+
+      const courseDeckSource = selectedCourse
+        ? (cardsetsResult.cardsets ?? [])
+        : (publicCardsetsResult.cardsets ?? []);
+
+      const filteredDecks = courseDeckSource.filter(
         (cardset) => String(cardset.course_id) === String(courseId)
       );
 
-      setCourse(selectedCourse ?? null);
+      setCourse(selectedCourse ?? selectedPublicCourse ?? null);
+      setCanEditCourse(Boolean(selectedCourse));
       setCourseDecks(filteredDecks);
     } catch (_) {
       message.error('Could not load course page from server.');
@@ -166,19 +192,18 @@ const CourseDetail = () => {
   return (
     <Layout style={{ minHeight: '100vh', width: '100%' }}>
       <Header style={{ background: headerBg, padding: 0, paddingRight: 15, paddingLeft: 5 }}>
-        <Flex align="center" style={{ width: '100%' }}>
-          <div style={{ cursor: 'pointer' }} onClick={() => navigate('/')}>
-            <LogoName width={150} />
-          </div>
-          <div style={{ flex: 1, display: 'flex', justifyContent: 'center', padding: '0 16px' }}>
-            <HeaderSearch />
-          </div>
-          <Flex gap="small">
-            <Button onClick={() => navigate('/workspace')}>Back to Workspace</Button>
-            <Button type="primary" onClick={handleLogout}>Log Out</Button>
+          <Flex align="center" style={{ width: '100%' }}>
+            <div style={{ cursor: 'pointer' }} onClick={() => navigate('/')}>
+              <LogoName width={150} />
+            </div>
+            <div style={{ flex: 1, display: 'flex', justifyContent: 'center', padding: '0 16px' }}>
+              <HeaderSearch />
+            </div>
+            <Flex gap="small">
+              <Button type="primary" onClick={handleLogout}>Log Out</Button>
+            </Flex>
           </Flex>
-        </Flex>
-      </Header>
+        </Header>
 
       <Layout style={{ flex: 1, minHeight: 0 }}>
         <Content
@@ -191,9 +216,18 @@ const CourseDetail = () => {
           }}
         >
           <Flex vertical gap={18}>
-            <Flex align="center" justify="space-between" wrap>
-              <Title level={3} style={{ margin: 0 }}>{titleText}</Title>
-              <Button type="default" onClick={openEditModal} disabled={!course}>Edit Course</Button>
+            <Flex align="center" justify="space-between" wrap gap={12}>
+              <Button type="default" onClick={() => navigate('/workspace')}>
+                Back to Workspace
+              </Button>
+              <Title level={3} style={{ margin: 0, textAlign: 'center', flex: 1 }}>
+                {titleText}
+              </Title>
+              <Flex gap="small">
+                <Button type="default" onClick={openEditModal} disabled={!course || !canEditCourse}>
+                  Edit Course
+                </Button>
+              </Flex>
             </Flex>
 
             <Text type="secondary">

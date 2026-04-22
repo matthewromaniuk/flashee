@@ -12,6 +12,7 @@ import {
   getPublicCardsets,
   getCardsetsByUserEmail,
   updateCardset,
+  forkCardset,
 } from './controllers/cardsetController.js';
 
 import {
@@ -91,6 +92,7 @@ cardsetRouter.get('/user/:userId', getCardsetsByUserEmail);
 cardsetRouter.get('/public', getPublicCardsets);
 cardsetRouter.post('/decks', createDeck);
 cardsetRouter.post('/', createCardset);
+cardsetRouter.post('/:id/fork', forkCardset);
 cardsetRouter.patch('/:id', updateCardset);
 cardsetRouter.delete('/:id', deleteCardset);
 cardsetRouter.use('/:cardsetId/flashcards', flashcardRouter);

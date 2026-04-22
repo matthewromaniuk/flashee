@@ -44,6 +44,8 @@ const CardsetDetail = () => {
   const [savingEdit, setSavingEdit] = useState(false)
   const [editForm] = Form.useForm()
   const [cardsetForm] = Form.useForm()
+  const [isOwner, setIsOwner] = useState(false)
+  const [forking, setForking] = useState(false)
 
   const {
     token: { colorBgContainer, headerBg },
@@ -67,6 +69,7 @@ const CardsetDetail = () => {
 
       const result = await response.json()
       if (!response.ok) {
+        setIsOwner(false)
         return
       }
 
@@ -80,9 +83,15 @@ const CardsetDetail = () => {
           name: selectedCardset.name,
           isPublic: Boolean(selectedCardset.isPublic),
         })
+        // User is owner if they have a role in their cardsets list
+        setIsOwner(selectedCardset?.role === 'owner')
+      } else {
+        // Deck not found in user's cardsets, so they don't own it
+        setIsOwner(false)
       }
     } catch (_) {
       // Keep fallback title if name lookup fails.
+      setIsOwner(false)
     }
   }
 
@@ -425,6 +434,44 @@ const CardsetDetail = () => {
     }
   }
 
+  const forkCurrentCardset = async () => {
+    const userEmail = localStorage.getItem('flashee_user_email')
+    if (!userEmail) {
+      message.error('No signed-in user found. Please sign in again.')
+      return
+    }
+
+    try {
+      setForking(true)
+      const response = await fetch(`/api/cardsets/${cardsetId}/fork`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-email': userEmail,
+        },
+      })
+
+      const result = await response.json()
+      if (!response.ok) {
+        message.error(result.error || 'Could not fork deck')
+        return
+      }
+
+      const newCardsetId = result.cardset?.id
+      if (!newCardsetId) {
+        message.error('Fork successful but new deck ID is missing')
+        return
+      }
+
+      message.success('Deck forked successfully')
+      navigate(`/workspace/${newCardsetId}`)
+    } catch (_) {
+      message.error('Could not fork deck.')
+    } finally {
+      setForking(false)
+    }
+  }
+
   const goToPreviousCard = () => {
     if (visibleFlashcards.length <= 1) return
     setCurrentCardIndex((prevIndex) => (prevIndex - 1 + visibleFlashcards.length) % visibleFlashcards.length)
@@ -470,11 +517,17 @@ const CardsetDetail = () => {
               </Button>
               <Title level={3} style={{ margin: 0 }}>{cardsetName}</Title>
               <Flex gap="small" wrap>
-                <Button onClick={openCardsetEdit}>Edit Deck</Button>
+                {isOwner ? (
+                  <>
+                    <Button onClick={openCardsetEdit}>Edit Deck</Button>
+                    <Button danger loading={deletingCardset} onClick={deleteCurrentCardset}>Delete Deck</Button>
+                  </>
+                ) : (
+                  <Button type="primary" loading={forking} onClick={forkCurrentCardset}>Fork Deck</Button>
+                )}
                 <Button type={practiceMode ? 'primary' : 'default'} onClick={() => setPracticeMode((prev) => !prev)}>
                   Practice Mode
                 </Button>
-                <Button danger loading={deletingCardset} onClick={deleteCurrentCardset}>Delete Deck</Button>
               </Flex>
             </Flex>
             <Text type="secondary">Flip cards, edit content, and mark each card correct or incorrect.</Text>
