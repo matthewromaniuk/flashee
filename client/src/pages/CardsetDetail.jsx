@@ -10,6 +10,7 @@ import {
   InputNumber,
   Layout,
   Modal,
+  Radio,
   Space,
   Spin,
   Typography,
@@ -29,6 +30,7 @@ const CardsetDetail = () => {
   const navigate = useNavigate()
   const { cardsetId } = useParams()
   const [cardsetName, setCardsetName] = useState('Deck Flashcards')
+  const [cardsetIsPublic, setCardsetIsPublic] = useState(false)
   const [flashcards, setFlashcards] = useState([])
   const [currentCardIndex, setCurrentCardIndex] = useState(0)
   const [practiceMode, setPracticeMode] = useState(false)
@@ -79,6 +81,7 @@ const CardsetDetail = () => {
 
       if (selectedCardset?.name) {
         setCardsetName(selectedCardset.name)
+        setCardsetIsPublic(Boolean(selectedCardset.isPublic))
         cardsetForm.setFieldsValue({
           name: selectedCardset.name,
           isPublic: Boolean(selectedCardset.isPublic),
@@ -256,6 +259,7 @@ const CardsetDetail = () => {
   const openCardsetEdit = () => {
     cardsetForm.setFieldsValue({
       name: cardsetName,
+      isPublic: cardsetIsPublic,
       newFlashcards: [],
     })
     setEditableFlashcards(flashcards)
@@ -393,6 +397,7 @@ const CardsetDetail = () => {
       }
 
       setCardsetName(result?.cardset?.name ?? values.name)
+      setCardsetIsPublic(Boolean(result?.cardset?.isPublic ?? values.isPublic))
       message.success('Deck updated')
       closeCardsetEdit()
       fetchFlashcards()
@@ -624,20 +629,10 @@ const CardsetDetail = () => {
                 label="Visibility"
                 rules={[{ required: true, message: 'Please select visibility' }]}
               >
-                <Input.Group compact>
-                  <Button
-                    type={cardsetForm.getFieldValue('isPublic') ? 'primary' : 'default'}
-                    onClick={() => cardsetForm.setFieldValue('isPublic', true)}
-                  >
-                    Public
-                  </Button>
-                  <Button
-                    type={cardsetForm.getFieldValue('isPublic') === false ? 'primary' : 'default'}
-                    onClick={() => cardsetForm.setFieldValue('isPublic', false)}
-                  >
-                    Private
-                  </Button>
-                </Input.Group>
+                <Radio.Group optionType="button" buttonStyle="solid">
+                  <Radio value={true}>Public</Radio>
+                  <Radio value={false}>Private</Radio>
+                </Radio.Group>
               </Form.Item>
 
               <Divider style={{ margin: '12px 0' }} />

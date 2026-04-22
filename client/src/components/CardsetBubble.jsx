@@ -18,7 +18,7 @@ const CardsetBubble = ({ cardset, onClick, onMoveToCourse, courseName }) => {
         {cardset?.name ?? 'Untitled Deck'}
       </Title>
       <Text type="secondary" style={{ display: 'block', marginBottom: 12 }}>
-        {cardset?.security ?? 'Private'}
+        {cardset?.isPublic ? 'Public' : 'Private'}
       </Text>
       {courseName ? (
         <Text type="secondary" style={{ display: 'block', marginBottom: 12 }}>

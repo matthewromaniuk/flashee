@@ -268,7 +268,7 @@ export async function forkCardset(req, res) {
 			name: sourceCardset.name,
 			description: sourceCardset.description,
 			isPublic: sourceCardset.isPublic,
-			course_id: sourceCardset.course_id,
+			course_id: null,
 		})
 		.select('*')
 
