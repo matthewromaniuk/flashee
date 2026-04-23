@@ -12,15 +12,15 @@ ReactDOM.createRoot(document.getElementById('root')).render(
         algorithm: theme.darkAlgorithm,
         token: {
           colorText: '#fff',
-          colorPrimary: '#9972cf',
+          colorPrimary: '#7a3ece',
           colorSuccess: '#51CF66',
           colorWarning: '#FFD93D',
-          colorError: '#FA5252',
+          colorError: '#ee1111',
           colorInfo: '#4DABF7',
-          colorBgBase: "#563866",
+          colorBgBase: "#380c4a",
           borderRadius: 12,
-          footerBg: "#3c1751",
-          headerBg: "#24172c",
+          footerBg: "#270931",
+          headerBg: "#241629",
         }
       }}
     >
