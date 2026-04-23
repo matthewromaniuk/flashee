@@ -15,7 +15,6 @@ import {
   theme,
 } from 'antd';
 import LogoName from '../components/LogoName';
-import HeaderSearch from '../components/HeaderSearch';
 import CardsetBubble from '../components/CardsetBubble';
 import AppFooter from '../components/AppFooter';
 
@@ -170,9 +169,7 @@ const CourseDetail = () => {
           <div style={{ cursor: 'pointer' }} onClick={() => navigate('/')}>
             <LogoName width={150} />
           </div>
-          <div style={{ flex: 1, display: 'flex', justifyContent: 'center', padding: '0 16px' }}>
-            <HeaderSearch />
-          </div>
+          <div style={{ flex: 1 }} />
           <Flex gap="small">
             <Button onClick={() => navigate('/workspace')}>Back to Workspace</Button>
             <Button type="primary" onClick={handleLogout}>Log Out</Button>

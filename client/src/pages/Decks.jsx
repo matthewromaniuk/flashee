@@ -20,7 +20,6 @@ import {
 } from 'antd';
 import { UploadOutlined, PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 import LogoName from "../components/LogoName";
-import HeaderSearch from '../components/HeaderSearch';
 import CardsetBubble from '../components/CardsetBubble';
 import FolderBubble from '../components/FolderBubble';
 import AppFooter from '../components/AppFooter';
@@ -642,9 +641,7 @@ const Decks = () => {
             <div style={{cursor: 'pointer'}} onClick={() => navigate('/')}>
               <LogoName width={150}/>
             </div>
-            <div style={{ flex: 1, display: 'flex', justifyContent: 'center', padding: '0 16px' }}>
-              <HeaderSearch />
-            </div>
+            <div style={{ flex: 1 }} />
             <Flex gap="small">
               <Button type="primary" onClick={() => navigate('/signin')}>Log Out</Button>
             </Flex>

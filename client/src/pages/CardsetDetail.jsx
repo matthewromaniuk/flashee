@@ -18,7 +18,6 @@ import {
 } from 'antd' 
 import { ArrowLeftOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons'
 import LogoName from '../components/LogoName'
-import HeaderSearch from '../components/HeaderSearch'
 import Flashcard from '../components/Flashcard'
 import AppFooter from '../components/AppFooter'
 
@@ -444,9 +443,7 @@ const CardsetDetail = () => {
           <div style={{ cursor: 'pointer' }} onClick={() => navigate('/')}>
             <LogoName width={150} />
           </div>
-          <div style={{ flex: 1, display: 'flex', justifyContent: 'center', padding: '0 16px' }}>
-            <HeaderSearch />
-          </div>
+          <div style={{ flex: 1 }} />
           <Flex gap="small">
             <Button type="primary" onClick={handleLogout}>Log Out</Button>
           </Flex>

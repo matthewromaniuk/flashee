@@ -5,7 +5,6 @@ import SignIn from "./pages/SignIn";
 import Decks from "./pages/Decks";
 import CardsetDetail from "./pages/CardsetDetail";
 import CourseDetail from "./pages/CourseDetail";
-import SearchResults from "./pages/SearchResults";
 
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 
@@ -47,14 +46,6 @@ const App = () => {
           element={(
             <ProtectedRoute>
               <CourseDetail />
-            </ProtectedRoute>
-          )}
-        />
-        <Route
-          path="/search"
-          element={(
-            <ProtectedRoute>
-              <SearchResults />
             </ProtectedRoute>
           )}
         />
