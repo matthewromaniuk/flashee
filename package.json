@@ -15,6 +15,17 @@
     "preview": "npm --workspace client run preview",
     "lint": "npm --workspace client run lint"
   },
+  "dependencies": {
+    "@ant-design/icons": "^6.1.0",
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
+    "@fontsource/roboto": "^5.2.10",
+    "@mui/material": "^7.3.9",
+    "@supabase/supabase-js": "^2.99.2",
+    "antd": "^6.3.2",
+    "express": "^5.2.1",
+    "react-router-dom": "^7.13.1"
+  },
   "type": "module",
   "devDependencies": {
     "concurrently": "^9.2.1"
