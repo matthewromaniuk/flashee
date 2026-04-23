@@ -1,3 +1,4 @@
+// Page for displaying deck details, including flashcards, practice mode, and editing capabilities
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import {
@@ -8,6 +9,7 @@ import {
   Input,
   Layout,
   Space,
+  Modal,
   Spin,
   Typography,
   message,
@@ -20,27 +22,27 @@ import Flashcard from '../components/Flashcard'
 import AppFooter from '../components/AppFooter'
 import EditDeckModal from '../components/EditDeckModal'
 import { clearStoredSession } from '../lib/session.js'
-import { useCardsetDetailData } from '../hooks/useCardsetDetailData.js'
+import { useDeckDetailData } from '../hooks/useDeckDetailData.js'
 
 const { Header, Content } = Layout
 const { Title, Text } = Typography
 
-const CardsetDetail = () => {
+const DeckDetail = () => {
   const navigate = useNavigate()
-  const { cardsetId } = useParams()
+  const { deckId } = useParams()
   const [currentCardIndex, setCurrentCardIndex] = useState(0)
   const [practiceMode, setPracticeMode] = useState(false)
   const [isEditOpen, setIsEditOpen] = useState(false)
-  const [isCardsetEditOpen, setIsCardsetEditOpen] = useState(false)
-  const [savingCardsetEdit, setSavingCardsetEdit] = useState(false)
-  const [deletingCardset, setDeletingCardset] = useState(false)
-  const [editableFlashcards, setEditableFlashcards] = useState([])
+  const [isDeckEditOpen, setIsDeckEditOpen] = useState(false)
+  const [savingDeckEdit, setSavingDeckEdit] = useState(false)
+  const [deletingDeck, setDeletingDeck] = useState(false)
+  const [editableDeckFlashcards, setEditableDeckFlashcards] = useState([])
   const [flashcardIdsToDelete, setFlashcardIdsToDelete] = useState([])
   const [moveTargetsByFlashcardId, setMoveTargetsByFlashcardId] = useState({})
   const [editingFlashcard, setEditingFlashcard] = useState(null)
   const [savingEdit, setSavingEdit] = useState(false)
   const [editForm] = Form.useForm()
-  const [cardsetForm] = Form.useForm()
+  const [deckForm] = Form.useForm()
   const [forking, setForking] = useState(false)
 
   const {
@@ -48,16 +50,16 @@ const CardsetDetail = () => {
   } = theme.useToken()
 
   const {
-    cardsetName,
-    cardsetIsPublic,
+    deckName,
+    deckIsPublic,
     flashcards,
     loading,
     isOwner,
-    setCardsetName,
-    setCardsetIsPublic,
+    setDeckName,
+    setDeckIsPublic,
     setFlashcards,
     refreshFlashcards,
-  } = useCardsetDetailData(cardsetId)
+  } = useDeckDetailData(deckId)
 
   const visibleFlashcards = useMemo(() => {
     if (!practiceMode) {
@@ -112,7 +114,7 @@ const CardsetDetail = () => {
     try {
       setSavingEdit(true)
       const values = await editForm.validateFields()
-      const response = await fetch(`/api/cardsets/${cardsetId}/flashcards/${editingFlashcard.id}`, {
+      const response = await fetch(`/api/decks/${deckId}/flashcards/${editingFlashcard.id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -148,7 +150,7 @@ const CardsetDetail = () => {
     }
 
     try {
-      const response = await fetch(`/api/cardsets/${cardsetId}/flashcards/${flashcardId}/status`, {
+      const response = await fetch(`/api/decks/${deckId}/flashcards/${flashcardId}/status`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -180,13 +182,13 @@ const CardsetDetail = () => {
     }
   }
 
-  const openCardsetEdit = () => {
-    cardsetForm.setFieldsValue({
-      name: cardsetName,
-      isPublic: cardsetIsPublic,
+  const openDeckEdit = () => {
+    deckForm.setFieldsValue({
+      name: deckName,
+      isPublic: deckIsPublic,
       newFlashcards: [],
     })
-    setEditableFlashcards(flashcards)
+    setEditableDeckFlashcards(flashcards)
     setMoveTargetsByFlashcardId(
       flashcards.reduce((acc, card, index) => {
         acc[String(card.id)] = index + 1
@@ -194,19 +196,19 @@ const CardsetDetail = () => {
       }, {})
     )
     setFlashcardIdsToDelete([])
-    setIsCardsetEditOpen(true)
+    setIsDeckEditOpen(true)
   }
 
-  const closeCardsetEdit = () => {
-    setIsCardsetEditOpen(false)
-    cardsetForm.resetFields()
-    setEditableFlashcards([])
+  const closeDeckEdit = () => {
+    setIsDeckEditOpen(false)
+    deckForm.resetFields()
+    setEditableDeckFlashcards([])
     setFlashcardIdsToDelete([])
     setMoveTargetsByFlashcardId({})
   }
 
   const removeExistingFlashcard = (flashcardId) => {
-    setEditableFlashcards((prev) => prev.filter((card) => String(card.id) !== String(flashcardId)))
+    setEditableDeckFlashcards((prev) => prev.filter((card) => String(card.id) !== String(flashcardId)))
     setMoveTargetsByFlashcardId((prev) => {
       const next = { ...prev }
       delete next[String(flashcardId)]
@@ -219,7 +221,7 @@ const CardsetDetail = () => {
   }
 
   const moveExistingFlashcard = (flashcardId, targetIndexRaw) => {
-    setEditableFlashcards((prev) => {
+    setEditableDeckFlashcards((prev) => {
       const currentIndex = prev.findIndex((card) => String(card.id) === String(flashcardId))
       if (currentIndex === -1) {
         return prev
@@ -252,7 +254,7 @@ const CardsetDetail = () => {
     })
   }
 
-  const saveCardsetEdit = async () => {
+  const saveDeckEdit = async () => {
     const userEmail = localStorage.getItem('flashee_user_email')
     if (!userEmail) {
       message.error('No signed-in user found. Please sign in again.')
@@ -260,10 +262,10 @@ const CardsetDetail = () => {
     }
 
     try {
-      setSavingCardsetEdit(true)
-      const values = await cardsetForm.validateFields()
+      setSavingDeckEdit(true)
+      const values = await deckForm.validateFields()
 
-      const response = await fetch(`/api/cardsets/${cardsetId}`, {
+      const response = await fetch(`/api/decks/${deckId}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -282,7 +284,7 @@ const CardsetDetail = () => {
       }
 
       for (const flashcardId of flashcardIdsToDelete) {
-        const deleteResponse = await fetch(`/api/cardsets/${cardsetId}/flashcards/${flashcardId}`, {
+        const deleteResponse = await fetch(`/api/decks/${deckId}/flashcards/${flashcardId}`, {
           method: 'DELETE',
           headers: {
             'x-user-email': userEmail,
@@ -304,7 +306,7 @@ const CardsetDetail = () => {
         }))
 
       if (newFlashcards.length > 0) {
-        const createResponse = await fetch(`/api/cardsets/${cardsetId}/flashcards/bulk`, {
+        const createResponse = await fetch(`/api/decks/${deckId}/flashcards/bulk`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -320,19 +322,19 @@ const CardsetDetail = () => {
         }
       }
 
-      setCardsetName(result?.cardset?.name ?? values.name)
-      setCardsetIsPublic(Boolean(result?.cardset?.isPublic ?? values.isPublic))
+      setDeckName(result?.deck?.name ?? values.name)
+      setDeckIsPublic(Boolean(result?.deck?.isPublic ?? values.isPublic))
       message.success('Deck updated')
-      closeCardsetEdit()
+      closeDeckEdit()
       refreshFlashcards()
     } catch {
-      // Form shows field-level validation
+      // Form validation handles any field-level feedback.
     } finally {
-      setSavingCardsetEdit(false)
+      setSavingDeckEdit(false)
     }
   }
 
-  const deleteCurrentCardset = async () => {
+  const deleteCurrentDeck = async () => {
     const userEmail = localStorage.getItem('flashee_user_email')
     if (!userEmail) {
       message.error('No signed-in user found. Please sign in again.')
@@ -340,8 +342,8 @@ const CardsetDetail = () => {
     }
 
     try {
-      setDeletingCardset(true)
-      const response = await fetch(`/api/cardsets/${cardsetId}`, {
+      setDeletingDeck(true)
+      const response = await fetch(`/api/decks/${deckId}`, {
         method: 'DELETE',
         headers: {
           'x-user-email': userEmail,
@@ -359,11 +361,11 @@ const CardsetDetail = () => {
     } catch {
       message.error('Could not delete deck.')
     } finally {
-      setDeletingCardset(false)
+      setDeletingDeck(false)
     }
   }
 
-  const forkCurrentCardset = async () => {
+  const forkCurrentDeck = async () => {
     const userEmail = localStorage.getItem('flashee_user_email')
     if (!userEmail) {
       message.error('No signed-in user found. Please sign in again.')
@@ -372,7 +374,7 @@ const CardsetDetail = () => {
 
     try {
       setForking(true)
-      const response = await fetch(`/api/cardsets/${cardsetId}/fork`, {
+      const response = await fetch(`/api/decks/${deckId}/fork`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -386,14 +388,14 @@ const CardsetDetail = () => {
         return
       }
 
-      const newCardsetId = result.cardset?.id
-      if (!newCardsetId) {
+      const newDeckId = result.deck?.id
+      if (!newDeckId) {
         message.error('Fork successful but new deck ID is missing')
         return
       }
 
       message.success('Deck forked successfully')
-      navigate(`/workspace/${newCardsetId}`)
+      navigate(`/workspace/${newDeckId}`)
     } catch {
       message.error('Could not fork deck.')
     } finally {
@@ -444,15 +446,15 @@ const CardsetDetail = () => {
               <Button type="default" icon={<ArrowLeftOutlined />} onClick={() => navigate('/workspace')}>
                 Back to Workspace
               </Button>
-              <Title level={3} style={{ margin: 0 }}>{cardsetName}</Title>
+              <Title level={3} style={{ margin: 0 }}>{deckName}</Title>
               <Flex gap="small" wrap>
                 {isOwner ? (
                   <>
-                    <Button onClick={openCardsetEdit}>Edit Deck</Button>
-                    <Button danger loading={deletingCardset} onClick={deleteCurrentCardset}>Delete Deck</Button>
+                    <Button onClick={openDeckEdit}>Edit Deck</Button>
+                    <Button danger loading={deletingDeck} onClick={deleteCurrentDeck}>Delete Deck</Button>
                   </>
                 ) : (
-                  <Button type="primary" loading={forking} onClick={forkCurrentCardset}>Fork Deck</Button>
+                  <Button type="primary" loading={forking} onClick={forkCurrentDeck}>Fork Deck</Button>
                 )}
                 <Button type={practiceMode ? 'primary' : 'default'} onClick={() => setPracticeMode((prev) => !prev)}>
                   Practice Mode
@@ -532,12 +534,12 @@ const CardsetDetail = () => {
           </Modal>
 
           <EditDeckModal
-            open={isCardsetEditOpen}
-            onCancel={closeCardsetEdit}
-            onOk={saveCardsetEdit}
-            confirmLoading={savingCardsetEdit}
-            form={cardsetForm}
-            editableFlashcards={editableFlashcards}
+            open={isDeckEditOpen}
+            onCancel={closeDeckEdit}
+            onOk={saveDeckEdit}
+            confirmLoading={savingDeckEdit}
+            form={deckForm}
+            editableDeckFlashcards={editableDeckFlashcards}
             moveTargetsByFlashcardId={moveTargetsByFlashcardId}
             onMoveTargetChange={(flashcardId, value) => {
               setMoveTargetsByFlashcardId((prev) => ({
@@ -556,4 +558,4 @@ const CardsetDetail = () => {
   )
 }
 
-export default CardsetDetail
+export default DeckDetail

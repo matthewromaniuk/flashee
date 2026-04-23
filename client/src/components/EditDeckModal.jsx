@@ -1,3 +1,4 @@
+//Modal used for editing an existing deck, allows users to change deck name, visibility, add new flashcards, and move or remove existing flashcards
 import { Button, Divider, Flex, Form, Input, InputNumber, Modal, Radio, Space, Typography } from 'antd';
 import { DeleteOutlined, PlusOutlined } from '@ant-design/icons';
 
@@ -9,7 +10,7 @@ const EditDeckModal = ({
   onOk,
   confirmLoading,
   form,
-  editableFlashcards,
+  editableDeckFlashcards,
   moveTargetsByFlashcardId,
   onMoveTargetChange,
   onMoveExistingFlashcard,
@@ -48,11 +49,11 @@ const EditDeckModal = ({
         <Divider style={{ margin: '12px 0' }} />
 
         <Text strong style={{ display: 'block', marginBottom: 8 }}>Existing Flashcards</Text>
-        {editableFlashcards.length === 0 ? (
+        {editableDeckFlashcards.length === 0 ? (
           <Text type="secondary">No flashcards currently in this deck.</Text>
         ) : (
           <Space orientation="vertical" style={{ width: '100%' }} size={8}>
-            {editableFlashcards.map((flashcard, index) => (
+            {editableDeckFlashcards.map((flashcard, index) => (
               <Flex
                 key={flashcard.id}
                 align="center"
@@ -69,7 +70,7 @@ const EditDeckModal = ({
                 <Flex align="center" gap={8}>
                   <InputNumber
                     min={1}
-                    max={editableFlashcards.length}
+                    max={editableDeckFlashcards.length}
                     value={moveTargetsByFlashcardId[String(flashcard.id)] ?? index + 1}
                     onChange={(value) => {
                       onMoveTargetChange?.(flashcard.id, value);

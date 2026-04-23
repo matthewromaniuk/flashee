@@ -1,3 +1,4 @@
+//Main entry point for React app, defines token for Ant Design for consistent theming; renders App
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.jsx'

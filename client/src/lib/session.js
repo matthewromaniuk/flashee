@@ -1,3 +1,4 @@
+//Session management utilities for storing and retrieving user session data in localStorage
 const SESSION_KEY = 'flashee_session'
 const USER_EMAIL_KEY = 'flashee_user_email'
 const USER_ID_KEY = 'flashee_user_id'

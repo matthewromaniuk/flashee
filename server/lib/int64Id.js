@@ -4,7 +4,7 @@ import { randomBytes } from 'crypto'
 const MAX_SAFE_INT53 = BigInt(Number.MAX_SAFE_INTEGER)
 
 
-//Generates int8 (8-bytes) random ID for cardset and flashcard ids
+//Generates int8 (8-bytes) random ID for deck and flashcard ids
 export function generateInt64Id() {
   const buffer = randomBytes(8)
   buffer[0] &= 0x1f

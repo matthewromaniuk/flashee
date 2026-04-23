@@ -1,3 +1,4 @@
+//Workspace page showing user's decks and courses, with actions to create, move, and navigate to details
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -13,8 +14,8 @@ import {
 import { PlusOutlined } from '@ant-design/icons';
 import LogoName from "../components/LogoName";
 import HeaderSearch from '../components/HeaderSearch';
-import CardsetBubble from '../components/CardsetBubble';
-import FolderBubble from '../components/FolderBubble';
+import DeckBubble from '../components/DeckBubble';
+import CourseBubble from '../components/CourseBubble';
 import AppFooter from '../components/AppFooter';
 import CreateDeckModal from '../components/CreateDeckModal';
 import CreateCourseModal from '../components/CreateCourseModal';
@@ -34,19 +35,19 @@ const Workspace = () => {
   const [isCreateDeckOpen, setIsCreateDeckOpen] = useState(false);
   const [isCreateCourseOpen, setIsCreateCourseOpen] = useState(false);
   const [isMoveDeckOpen, setIsMoveDeckOpen] = useState(false);
-  const [selectedCardsetForMove, setSelectedCardsetForMove] = useState(null);
+  const [selectedDeckForMove, setSelectedDeckForMove] = useState(null);
   const navigate = useNavigate();
   const {
     token: { colorBgContainer, headerBg },
   } = theme.useToken();
   const {
     auth,
-    cardsets,
+    decks,
     courses,
-    loadingCardsets,
-    setCardsets,
+    loadingDecks,
+    setDecks,
     setCourses,
-    refreshCardsets,
+    refreshDecks,
   } = useWorkspaceData();
   const courseNameById = courses.reduce((acc, course) => {
     acc[String(course.id)] = course.name;
@@ -69,14 +70,14 @@ const Workspace = () => {
     setIsCreateCourseOpen(false);
   };
 
-  const openMoveDeckModal = (cardset) => {
-    setSelectedCardsetForMove(cardset);
+  const openMoveDeckModal = (deck) => {
+    setSelectedDeckForMove(deck);
     setIsMoveDeckOpen(true);
   };
 
   const closeMoveDeckModal = () => {
     setIsMoveDeckOpen(false);
-    setSelectedCardsetForMove(null);
+    setSelectedDeckForMove(null);
   };
 
   const handleLogout = () => {
@@ -124,7 +125,7 @@ const Workspace = () => {
             <Text type="secondary">
               Build a deck manually or upload plain text for AI-assisted card generation.
             </Text>
-            {loadingCardsets ? (
+            {loadingDecks ? (
               <Flex align="center" justify="center" style={{ minHeight: 200 }}>
                 <Spin size="large" />
               </Flex>
@@ -136,9 +137,9 @@ const Workspace = () => {
                 ) : (
                   <div style={GRID_STYLE}>
                     {courses.map((course) => (
-                      <FolderBubble
+                      <CourseBubble
                         key={course.id}
-                        folder={course}
+                        course={course}
                         onClick={() => navigate(`/courses/${course.id}`)}
                       />
                     ))}
@@ -146,17 +147,17 @@ const Workspace = () => {
                 )}
 
                 <Text style={{ fontSize: 18, fontWeight: 600, marginTop: 8 }}>Your Decks</Text>
-                {(!cardsets || cardsets.length === 0) ? (
+                {(!decks || decks.length === 0) ? (
                   <Empty description="No decks yet" />
                 ) : (
                   <div style={GRID_STYLE}>
-                    {cardsets.map((cardset) => (
-                      <CardsetBubble
-                        key={cardset.id}
-                        cardset={cardset}
-                        onClick={() => navigate(`/workspace/${cardset.id}`)}
+                    {decks.map((deck) => (
+                      <DeckBubble
+                        key={deck.id}
+                        deck={deck}
+                        onClick={() => navigate(`/workspace/${deck.id}`)}
                         onMoveToCourse={openMoveDeckModal}
-                        courseName={courseNameById[String(cardset.course_id)]}
+                        courseName={courseNameById[String(deck.course_id)]}
                       />
                     ))}
                   </div>
@@ -168,7 +169,7 @@ const Workspace = () => {
           <CreateDeckModal
             open={isCreateDeckOpen}
             onCancel={closeCreateDeckModal}
-            onCreated={refreshCardsets}
+            onCreated={refreshDecks}
             auth={auth}
           />
 
@@ -181,12 +182,12 @@ const Workspace = () => {
 
           <MoveDeckModal
             open={isMoveDeckOpen}
-            cardset={selectedCardsetForMove}
+            deck={selectedDeckForMove}
             courses={courses}
             onCancel={closeMoveDeckModal}
-            onMoved={({ cardsetId, courseId }) => {
-              setCardsets((prev) => prev.map((item) => {
-                if (String(item.id) !== String(cardsetId)) {
+            onMoved={({ deckId, courseId }) => {
+              setDecks((prev) => prev.map((item) => {
+                if (String(item.id) !== String(deckId)) {
                   return item;
                 }
 

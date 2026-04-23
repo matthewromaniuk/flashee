@@ -1,9 +1,10 @@
+//General app component that sets up routing and protected routes based on user session status
 import React from 'react';
 import Home from "./pages/Home";
 import SignUp from "./pages/SignUp";
 import SignIn from "./pages/SignIn";
 import Workspace from "./pages/Workspace";
-import CardsetDetail from "./pages/CardsetDetail";
+import DeckDetail from "./pages/DeckDetail";
 import CourseDetail from "./pages/CourseDetail";
 import SearchResults from "./pages/SearchResults";
 import { getStoredSession } from './lib/session.js';
@@ -36,10 +37,10 @@ const App = () => {
           )}
         />
         <Route
-          path="/workspace/:cardsetId"
+          path="/workspace/:deckId"
           element={(
             <ProtectedRoute>
-              <CardsetDetail />
+              <DeckDetail />
             </ProtectedRoute>
           )}
         />

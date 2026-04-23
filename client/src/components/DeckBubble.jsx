@@ -1,9 +1,10 @@
+// Displays deck information in bubble format, used in workspace and search results
 import { Button, Card, Tag, Typography } from 'antd'
-import { FolderOpenOutlined } from '@ant-design/icons'
+import { SwapOutlined } from '@ant-design/icons'
 
 const { Title, Text } = Typography
 
-const CardsetBubble = ({ cardset, onClick, onMoveToCourse, courseName }) => {
+const DeckBubble = ({ deck, onClick, onMoveToCourse, courseName }) => {
   return (
     <Card
       hoverable
@@ -15,25 +16,25 @@ const CardsetBubble = ({ cardset, onClick, onMoveToCourse, courseName }) => {
       }}
     >
       <Title level={4} style={{ marginBottom: 8 }}>
-        {cardset?.name ?? 'Untitled Deck'}
+        {deck?.name ?? 'Untitled Deck'}
       </Title>
       <Text type="secondary" style={{ display: 'block', marginBottom: 12 }}>
-        {cardset?.isPublic ? 'Public' : 'Private'}
+        {deck?.isPublic ? 'Public' : 'Private'}
       </Text>
       {courseName ? (
         <Text type="secondary" style={{ display: 'block', marginBottom: 12 }}>
           Course: {courseName}
         </Text>
       ) : null}
-      {cardset?.role ? <Tag color="blue">{cardset.role}</Tag> : null}
+      {deck?.role ? <Tag color="blue">{deck.role}</Tag> : null}
       {onMoveToCourse ? (
         <div style={{ marginTop: 12 }}>
           <Button
             size="small"
-            icon={<FolderOpenOutlined />}
+            icon={<SwapOutlined />}
             onClick={(event) => {
               event.stopPropagation()
-              onMoveToCourse(cardset)
+              onMoveToCourse(deck)
             }}
           >
             Move to Course
@@ -44,4 +45,4 @@ const CardsetBubble = ({ cardset, onClick, onMoveToCourse, courseName }) => {
   )
 }
 
-export default CardsetBubble
+export default DeckBubble

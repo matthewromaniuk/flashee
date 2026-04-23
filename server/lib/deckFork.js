@@ -1,53 +1,53 @@
 import { supabase } from './supabaseClient.js'
 import { generateInt64Id } from './int64Id.js'
 
-export async function forkCardsetById({ id, requesterEmail }) {
-  const { data: sourceCardset, error: fetchError } = await supabase
-    .from('cardset')
+export async function forkDeckById({ id, requesterEmail }) {
+  const { data: sourceDeck, error: fetchError } = await supabase
+    .from('deck')
     .select('*')
     .eq('id', id)
     .single()
 
-  if (fetchError || !sourceCardset) {
-    return { error: 'Source cardset not found', status: 404 }
+  if (fetchError || !sourceDeck) {
+    return { error: 'Source deck not found', status: 404 }
   }
 
-  const forkedCardsetId = generateInt64Id()
+  const forkedDeckId = generateInt64Id()
 
-  const { data: newCardset, error: createError } = await supabase
-    .from('cardset')
+  const { data: newDeck, error: createError } = await supabase
+    .from('deck')
     .insert({
-      id: forkedCardsetId,
-      name: sourceCardset.name,
-      description: sourceCardset.description,
-      isPublic: sourceCardset.isPublic,
+      id: forkedDeckId,
+      name: sourceDeck.name,
+      description: sourceDeck.description,
+      isPublic: sourceDeck.isPublic,
       course_id: null,
     })
     .select('*')
 
   if (createError) {
-    return { error: 'Failed to create forked cardset: ' + createError.message, status: 400 }
+    return { error: 'Failed to create forked deck: ' + createError.message, status: 400 }
   }
 
-  const createdCardset = newCardset?.[0]
-  if (!createdCardset) {
-    return { error: 'Cardset forked but id missing in response', status: 500 }
+  const createdDeck = newDeck?.[0]
+  if (!createdDeck) {
+    return { error: 'Deck forked but id missing in response', status: 500 }
   }
 
   const { data: sourceFlashcards, error: flashcardFetchError } = await supabase
     .from('flashcard')
     .select('*')
-    .eq('cardset_id', id)
+    .eq('deck_id', id)
 
   if (flashcardFetchError) {
-    await supabase.from('cardset').delete().eq('id', forkedCardsetId)
+    await supabase.from('deck').delete().eq('id', forkedDeckId)
     return { error: 'Failed to fetch flashcards: ' + flashcardFetchError.message, status: 500 }
   }
 
   if (sourceFlashcards && sourceFlashcards.length > 0) {
     const flashcardsToInsert = sourceFlashcards.map((flashcard) => ({
       id: generateInt64Id(),
-      cardset_id: forkedCardsetId,
+      deck_id: forkedDeckId,
       question: flashcard.question,
       answer: flashcard.answer,
     }))
@@ -57,23 +57,23 @@ export async function forkCardsetById({ id, requesterEmail }) {
       .insert(flashcardsToInsert)
 
     if (flashcardCreateError) {
-      await supabase.from('cardset').delete().eq('id', forkedCardsetId)
+      await supabase.from('deck').delete().eq('id', forkedDeckId)
       return { error: 'Failed to copy flashcards: ' + flashcardCreateError.message, status: 500 }
     }
   }
 
   const { error: relationError } = await supabase
-    .from('card_user')
+    .from('deck_user')
     .insert({
       user_email: requesterEmail,
-      cardset_id: forkedCardsetId,
+      deck_id: forkedDeckId,
       role: 'owner',
     })
 
   if (relationError) {
-    await supabase.from('cardset').delete().eq('id', forkedCardsetId)
+    await supabase.from('deck').delete().eq('id', forkedDeckId)
     return { error: 'Failed to set ownership: ' + relationError.message, status: 400 }
   }
 
-  return { cardset: createdCardset }
+  return { deck: createdDeck }
 }

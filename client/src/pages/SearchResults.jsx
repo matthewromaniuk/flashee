@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+//Page for displaying search results based on user query, including user courses and decks, as well as public courses and decks. Allows navigation to course or deck details.
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Button,
@@ -11,8 +11,8 @@ import {
 } from 'antd';
 import LogoName from '../components/LogoName';
 import HeaderSearch from '../components/HeaderSearch';
-import CardsetBubble from '../components/CardsetBubble';
-import FolderBubble from '../components/FolderBubble';
+import DeckBubble from '../components/DeckBubble';
+import CourseBubble from '../components/CourseBubble';
 import AppFooter from '../components/AppFooter';
 import { clearStoredSession } from '../lib/session.js';
 import { useSearchResultsData } from '../hooks/useSearchResultsData.js';
@@ -30,15 +30,15 @@ const SearchResults = () => {
   } = theme.useToken();
   const { yourCourses, yourDecks, publicCourses, publicDecks, loading } = useSearchResultsData(query);
 
-  const sections = useMemo(() => [
+  const sections = [
     {
       title: 'Your Courses',
       empty: 'No matching courses',
       items: yourCourses,
       renderItem: (course) => (
-        <FolderBubble
+        <CourseBubble
           key={course.id}
-          folder={course}
+          course={course}
           onClick={() => navigate(`/courses/${course.id}`)}
         />
       ),
@@ -47,11 +47,11 @@ const SearchResults = () => {
       title: 'Your Decks',
       empty: 'No matching decks',
       items: yourDecks,
-      renderItem: (cardset) => (
-        <CardsetBubble
-          key={cardset.id}
-          cardset={cardset}
-          onClick={() => navigate(`/workspace/${cardset.id}`)}
+      renderItem: (deck) => (
+        <DeckBubble
+          key={deck.id}
+          deck={deck}
+          onClick={() => navigate(`/workspace/${deck.id}`)}
         />
       ),
     },
@@ -60,9 +60,9 @@ const SearchResults = () => {
       empty: 'No matching public courses',
       items: publicCourses,
       renderItem: (course) => (
-        <FolderBubble
+        <CourseBubble
           key={course.id}
-          folder={course}
+          course={course}
           onClick={() => navigate(`/courses/${course.id}`)}
         />
       ),
@@ -71,15 +71,15 @@ const SearchResults = () => {
       title: 'Public Decks',
       empty: 'No matching public decks',
       items: publicDecks,
-      renderItem: (cardset) => (
-        <CardsetBubble
-          key={cardset.id}
-          cardset={cardset}
-          onClick={() => navigate(`/workspace/${cardset.id}`)}
+      renderItem: (deck) => (
+        <DeckBubble
+          key={deck.id}
+          deck={deck}
+          onClick={() => navigate(`/workspace/${deck.id}`)}
         />
       ),
     },
-  ], [navigate, yourCourses, yourDecks, publicCourses, publicDecks]);
+  ];
 
   const hasResults = sections.some((section) => section.items.length > 0);
 

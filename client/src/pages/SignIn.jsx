@@ -1,3 +1,4 @@
+//Sign-in page with form for user authentication, error handling, and navigation to workspace on success
 import { useNavigate } from 'react-router-dom';
 import LogoName from "../components/LogoName";
 import { Button, Form, Input, Layout, Flex, Alert, theme } from 'antd';

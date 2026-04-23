@@ -78,8 +78,8 @@ async function cleanupSeededData(userEmail) {
   }
 
   const { data: deckLinks, error: deckLinkError } = await supabase
-    .from('card_user')
-    .select('cardset_id')
+    .from('deck_user')
+    .select('deck_id')
     .eq('user_email', userEmail)
 
   if (deckLinkError) {
@@ -87,13 +87,13 @@ async function cleanupSeededData(userEmail) {
   }
 
   const courseIds = [...new Set((courseLinks ?? []).map((row) => String(row.course_id)))]
-  const cardsetIds = [...new Set((deckLinks ?? []).map((row) => String(row.cardset_id)))]
+  const deckIds = [...new Set((deckLinks ?? []).map((row) => String(row.deck_id)))]
 
-  if (cardsetIds.length > 0) {
+  if (deckIds.length > 0) {
     const { error: flashcardStatusDeleteError } = await supabase
       .from('flashcard_status')
       .delete()
-      .in('cardset_id', cardsetIds)
+      .in('deck_id', deckIds)
 
     if (flashcardStatusDeleteError) {
       throw new Error(`Failed to delete existing flashcard status rows: ${flashcardStatusDeleteError.message}`)
@@ -102,28 +102,28 @@ async function cleanupSeededData(userEmail) {
     const { error: flashcardDeleteError } = await supabase
       .from('flashcard')
       .delete()
-      .in('cardset_id', cardsetIds)
+      .in('deck_id', deckIds)
 
     if (flashcardDeleteError) {
       throw new Error(`Failed to delete existing flashcards: ${flashcardDeleteError.message}`)
     }
 
-    const { error: cardUserDeleteError } = await supabase
-      .from('card_user')
+    const { error: deckUserDeleteError } = await supabase
+      .from('deck_user')
       .delete()
       .eq('user_email', userEmail)
 
-    if (cardUserDeleteError) {
-      throw new Error(`Failed to delete existing card_user links: ${cardUserDeleteError.message}`)
+    if (deckUserDeleteError) {
+      throw new Error(`Failed to delete existing deck_user links: ${deckUserDeleteError.message}`)
     }
 
-    const { error: cardsetDeleteError } = await supabase
-      .from('cardset')
+    const { error: deckDeleteError } = await supabase
+      .from('deck')
       .delete()
-      .in('id', cardsetIds)
+      .in('id', deckIds)
 
-    if (cardsetDeleteError) {
-      throw new Error(`Failed to delete existing cardsets: ${cardsetDeleteError.message}`)
+    if (deckDeleteError) {
+      throw new Error(`Failed to delete existing decks: ${deckDeleteError.message}`)
     }
   }
 
@@ -154,8 +154,8 @@ async function seed() {
 
   const courses = []
   const courseUserRows = []
-  const cardsets = []
-  const cardUserRows = []
+  const decks = []
+  const deckUserRows = []
   const flashcards = []
 
   for (let i = 0; i < COURSES_TO_CREATE; i += 1) {
@@ -176,26 +176,26 @@ async function seed() {
     })
 
     for (let j = 0; j < DECKS_PER_COURSE; j += 1) {
-      const cardsetId = generateInt64Id()
+      const deckId = generateInt64Id()
       const deckName = buildDeckName(courseName, j)
 
-      cardsets.push({
-        id: cardsetId,
+      decks.push({
+        id: deckId,
         name: deckName,
         isPublic: true,
         course_id: courseId,
       })
 
-      cardUserRows.push({
+      deckUserRows.push({
         user_email: SEED_USER_EMAIL,
-        cardset_id: cardsetId,
+        deck_id: deckId,
         role: 'owner',
       })
 
       for (let k = 0; k < FLASHCARDS_PER_DECK; k += 1) {
         flashcards.push({
           id: generateInt64Id(),
-          cardset_id: cardsetId,
+          deck_id: deckId,
           question: buildQuestion(courseName, deckName, k),
           answer: buildAnswer(courseName, deckName, k),
         })
@@ -204,26 +204,26 @@ async function seed() {
   }
 
   for (let i = 0; i < EXTRA_PUBLIC_DECKS; i += 1) {
-    const cardsetId = generateInt64Id()
+    const deckId = generateInt64Id()
     const deckName = `Public Search Sampler ${i + 1} - ${pick(courseTopics, i + 5)}`
 
-    cardsets.push({
-      id: cardsetId,
+    decks.push({
+      id: deckId,
       name: deckName,
       isPublic: true,
       course_id: null,
     })
 
-    cardUserRows.push({
+    deckUserRows.push({
       user_email: SEED_USER_EMAIL,
-      cardset_id: cardsetId,
+      deck_id: deckId,
       role: 'owner',
     })
 
     for (let k = 0; k < FLASHCARDS_PER_DECK; k += 1) {
       flashcards.push({
         id: generateInt64Id(),
-        cardset_id: cardsetId,
+        deck_id: deckId,
         question: `${deckName} :: keyword probe ${k + 1}?`,
         answer: `Sample answer ${k + 1} for ${deckName}.`,
       })
@@ -240,14 +240,14 @@ async function seed() {
     throw new Error(`Failed to insert course_user rows: ${courseUserInsertError.message}`)
   }
 
-  const { error: cardsetInsertError } = await supabase.from('cardset').insert(cardsets)
-  if (cardsetInsertError) {
-    throw new Error(`Failed to insert cardsets: ${cardsetInsertError.message}`)
+  const { error: deckInsertError } = await supabase.from('deck').insert(decks)
+  if (deckInsertError) {
+    throw new Error(`Failed to insert decks: ${deckInsertError.message}`)
   }
 
-  const { error: cardUserInsertError } = await supabase.from('card_user').insert(cardUserRows)
-  if (cardUserInsertError) {
-    throw new Error(`Failed to insert card_user rows: ${cardUserInsertError.message}`)
+  const { error: deckUserInsertError } = await supabase.from('deck_user').insert(deckUserRows)
+  if (deckUserInsertError) {
+    throw new Error(`Failed to insert deck_user rows: ${deckUserInsertError.message}`)
   }
 
   const { error: flashcardInsertError } = await supabase.from('flashcard').insert(flashcards)
@@ -255,7 +255,7 @@ async function seed() {
     throw new Error(`Failed to insert flashcards: ${flashcardInsertError.message}`)
   }
 
-  console.log(`[seed] Done. Inserted ${courses.length} courses, ${cardsets.length} decks, ${flashcards.length} flashcards.`)
+  console.log(`[seed] Done. Inserted ${courses.length} courses, ${decks.length} decks, ${flashcards.length} flashcards.`)
 }
 
 seed()

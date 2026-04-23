@@ -1,3 +1,4 @@
+//Footer component for the app
 import { Layout, Flex, Typography, theme } from 'antd';
 
 const { Footer } = Layout;

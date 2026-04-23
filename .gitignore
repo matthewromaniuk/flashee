@@ -24,4 +24,5 @@ dist-ssr
 *.sw?
 .vite
 .env
+.codex
 test.rest

@@ -1,6 +1,6 @@
 import { supabase } from '../lib/supabaseClient.js'
 import { generateInt64Id } from '../lib/int64Id.js'
-import { canWrite, getRequesterEmail, isOwner } from '../lib/cardsetPermissions.js'
+import { canWrite, getRequesterEmail, isOwner } from '../lib/deckPermissions.js'
 import { getCourseRole } from '../lib/courseAccess.js'
 
 export async function getCoursesByUserId(req, res) {

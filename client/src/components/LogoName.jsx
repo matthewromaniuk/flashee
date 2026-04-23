@@ -1,3 +1,4 @@
+//Logo Component
 import React from 'react';
 import { Image } from 'antd';
 import Logo from '../assets/FlasheeName.png';

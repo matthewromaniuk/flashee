@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react';
+//Page for displaying course details, including assigned decks and course information. 
+import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   Button,
@@ -16,7 +17,7 @@ import {
 } from 'antd';
 import LogoName from '../components/LogoName';
 import HeaderSearch from '../components/HeaderSearch';
-import CardsetBubble from '../components/CardsetBubble';
+import DeckBubble from '../components/DeckBubble';
 import AppFooter from '../components/AppFooter';
 import { clearStoredSession } from '../lib/session.js';
 import { useCourseDetailData } from '../hooks/useCourseDetailData.js';
@@ -43,7 +44,7 @@ const CourseDetail = () => {
     setCourse,
   } = useCourseDetailData(courseId);
 
-  const titleText = useMemo(() => course?.name ?? 'Course', [course]);
+  const titleText = course?.name ?? 'Course';
 
   const openEditModal = () => {
     editForm.setFieldsValue({
@@ -172,11 +173,11 @@ const CourseDetail = () => {
                   gap: 16,
                 }}
               >
-                {courseDecks.map((cardset) => (
-                  <CardsetBubble
-                    key={cardset.id}
-                    cardset={cardset}
-                    onClick={() => navigate(`/workspace/${cardset.id}`)}
+                {courseDecks.map((deck) => (
+                  <DeckBubble
+                    key={deck.id}
+                    deck={deck}
+                    onClick={() => navigate(`/workspace/${deck.id}`)}
                   />
                 ))}
               </div>

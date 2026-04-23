@@ -1,21 +1,21 @@
 import { supabase } from '../lib/supabaseClient.js'
 import { generateInt64Id } from '../lib/int64Id.js'
-import { authorizeCardsetAccess } from '../lib/cardsetAccess.js'
+import { authorizeDeckAccess } from '../lib/deckAccess.js'
 
 export async function listFlashcards(req, res) {
-	const { cardsetId } = req.params
+	const { deckId } = req.params
 
-	if (!cardsetId) {
-		return res.status(400).json({ error: 'Path parameter cardsetId is required' })
+	if (!deckId) {
+		return res.status(400).json({ error: 'Path parameter deckId is required' })
 	}
 
-	const authz = await authorizeCardsetAccess(req, res, cardsetId, 'read')
+	const authz = await authorizeDeckAccess(req, res, deckId, 'read')
 	if (!authz.allowed) return
 
 	const { data, error } = await supabase
 		.from('flashcard')
 		.select('*')
-		.eq('cardset_id', cardsetId)
+		.eq('deck_id', deckId)
 
 	if (error) {
 		return res.status(500).json({ error: error.message })
@@ -27,7 +27,7 @@ export async function listFlashcards(req, res) {
 		const { data: statusRows, error: statusError } = await supabase
 			.from('flashcard_status')
 			.select('flashcard_id,isCorrect')
-			.eq('cardset_id', cardsetId)
+			.eq('deck_id', deckId)
 			.eq('user_email', authz.requesterEmail)
 
 		if (statusError) {
@@ -52,14 +52,14 @@ export async function listFlashcards(req, res) {
 }
 
 export async function createFlashcard(req, res) {
-	const { cardsetId } = req.params
+	const { deckId } = req.params
 	const payload = req.body ?? {}
 
-	if (!cardsetId) {
-		return res.status(400).json({ error: 'Path parameter cardsetId is required' })
+	if (!deckId) {
+		return res.status(400).json({ error: 'Path parameter deckId is required' })
 	}
 
-	const authz = await authorizeCardsetAccess(req, res, cardsetId, 'write')
+	const authz = await authorizeDeckAccess(req, res, deckId, 'write')
 	if (!authz.allowed) return
 
 	const { isCorrect, ...flashcardFields } = payload
@@ -67,7 +67,7 @@ export async function createFlashcard(req, res) {
 	const flashcardId = generateInt64Id()
 	const flashcardPayload = {
 		...flashcardFields,
-		cardset_id: cardsetId,
+		deck_id: deckId,
 		id: flashcardId,
 	}
 
@@ -89,11 +89,11 @@ export async function createFlashcard(req, res) {
 		.from('flashcard_status')
 		.upsert({
 			user_email: authz.requesterEmail,
-			cardset_id: cardsetId,
+			deck_id: deckId,
 			flashcard_id: flashcardId,
 			isCorrect: initialIsCorrect,
 		}, {
-			onConflict: 'user_email,cardset_id,flashcard_id',
+			onConflict: 'user_email,deck_id,flashcard_id',
 		})
 
 	if (statusError) {
@@ -101,7 +101,7 @@ export async function createFlashcard(req, res) {
 			.from('flashcard')
 			.delete()
 			.eq('id', flashcardId)
-			.eq('cardset_id', cardsetId)
+			.eq('deck_id', deckId)
 
 		return res.status(400).json({ error: statusError.message })
 	}
@@ -110,7 +110,7 @@ export async function createFlashcard(req, res) {
 		flashcard: { ...createdFlashcard, id: flashcardId },
 		status: {
 			user_email: authz.requesterEmail,
-			cardset_id: cardsetId,
+			deck_id: deckId,
 			flashcard_id: flashcardId,
 			isCorrect: initialIsCorrect,
 		},
@@ -118,18 +118,18 @@ export async function createFlashcard(req, res) {
 }
 
 export async function bulkCreateFlashcards(req, res) {
-	const { cardsetId } = req.params
+	const { deckId } = req.params
 	const { flashcards } = req.body ?? {}
 
-	if (!cardsetId) {
-		return res.status(400).json({ error: 'Path parameter cardsetId is required' })
+	if (!deckId) {
+		return res.status(400).json({ error: 'Path parameter deckId is required' })
 	}
 
 	if (!Array.isArray(flashcards) || flashcards.length === 0) {
 		return res.status(400).json({ error: 'Field flashcards must be a non-empty array' })
 	}
 
-	const authz = await authorizeCardsetAccess(req, res, cardsetId, 'write')
+	const authz = await authorizeDeckAccess(req, res, deckId, 'write')
 	if (!authz.allowed) return
 
 	const preparedRows = flashcards.map((flashcard) => {
@@ -137,7 +137,7 @@ export async function bulkCreateFlashcards(req, res) {
 		return {
 			flashcardPayload: {
 				...flashcardPayload,
-				cardset_id: cardsetId,
+				deck_id: deckId,
 				id: generateInt64Id(),
 			},
 			isCorrect: false,
@@ -160,7 +160,7 @@ export async function bulkCreateFlashcards(req, res) {
 
 	const statusRows = createdFlashcards.map((flashcard, index) => ({
 		user_email: authz.requesterEmail,
-		cardset_id: cardsetId,
+		deck_id: deckId,
 		flashcard_id: preparedRows[index].flashcardPayload.id,
 		isCorrect: preparedRows[index].isCorrect,
 	}))
@@ -168,7 +168,7 @@ export async function bulkCreateFlashcards(req, res) {
 	const { error: statusError } = await supabase
 		.from('flashcard_status')
 		.upsert(statusRows, {
-			onConflict: 'user_email,cardset_id,flashcard_id',
+			onConflict: 'user_email,deck_id,flashcard_id',
 		})
 
 	if (statusError) {
@@ -179,18 +179,18 @@ export async function bulkCreateFlashcards(req, res) {
 }
 
 export async function updateFlashcardStatus(req, res) {
-	const { cardsetId, flashcardId } = req.params
+	const { deckId, flashcardId } = req.params
 	const { isCorrect } = req.body ?? {}
 
-	if (!cardsetId || !flashcardId) {
-		return res.status(400).json({ error: 'Path parameters cardsetId and flashcardId are required' })
+	if (!deckId || !flashcardId) {
+		return res.status(400).json({ error: 'Path parameters deckId and flashcardId are required' })
 	}
 
 	if (typeof isCorrect !== 'boolean') {
 		return res.status(400).json({ error: 'Field isCorrect must be a boolean' })
 	}
 
-	const authz = await authorizeCardsetAccess(req, res, cardsetId, 'read')
+	const authz = await authorizeDeckAccess(req, res, deckId, 'read')
 	if (!authz.allowed) return
 
 	if (!authz.requesterEmail) {
@@ -201,7 +201,7 @@ export async function updateFlashcardStatus(req, res) {
 		.from('flashcard')
 		.select('id')
 		.eq('id', flashcardId)
-		.eq('cardset_id', cardsetId)
+		.eq('deck_id', deckId)
 		.maybeSingle()
 
 	if (flashcardError) {
@@ -216,11 +216,11 @@ export async function updateFlashcardStatus(req, res) {
 		.from('flashcard_status')
 		.upsert({
 			user_email: authz.requesterEmail,
-			cardset_id: cardsetId,
+			deck_id: deckId,
 			flashcard_id: flashcardId,
 			isCorrect,
 		}, {
-			onConflict: 'user_email,cardset_id,flashcard_id',
+			onConflict: 'user_email,deck_id,flashcard_id',
 		})
 		.select('*')
 
@@ -232,20 +232,20 @@ export async function updateFlashcardStatus(req, res) {
 }
 
 export async function getFlashcard(req, res) {
-	const { cardsetId, flashcardId } = req.params
+	const { deckId, flashcardId } = req.params
 
-	if (!cardsetId || !flashcardId) {
-		return res.status(400).json({ error: 'Path parameters cardsetId and flashcardId are required' })
+	if (!deckId || !flashcardId) {
+		return res.status(400).json({ error: 'Path parameters deckId and flashcardId are required' })
 	}
 
-	const authz = await authorizeCardsetAccess(req, res, cardsetId, 'read')
+	const authz = await authorizeDeckAccess(req, res, deckId, 'read')
 	if (!authz.allowed) return
 
 	const { data, error } = await supabase
 		.from('flashcard')
 		.select('*')
 		.eq('id', flashcardId)
-		.eq('cardset_id', cardsetId)
+		.eq('deck_id', deckId)
 		.maybeSingle()
 
 	if (error) {
@@ -260,30 +260,31 @@ export async function getFlashcard(req, res) {
 }
 
 export async function updateFlashcard(req, res) {
-	const { cardsetId, flashcardId } = req.params
+	const { deckId, flashcardId } = req.params
 	const payload = req.body ?? {}
 
-	if (!cardsetId || !flashcardId) {
-		return res.status(400).json({ error: 'Path parameters cardsetId and flashcardId are required' })
+	if (!deckId || !flashcardId) {
+		return res.status(400).json({ error: 'Path parameters deckId and flashcardId are required' })
 	}
 
-	const authz = await authorizeCardsetAccess(req, res, cardsetId, 'write')
+	const authz = await authorizeDeckAccess(req, res, deckId, 'write')
 	if (!authz.allowed) return
 
-	if ('cardset_id' in payload && payload.cardset_id !== cardsetId) {
-		return res.status(400).json({ error: 'cardset_id in body must match path cardsetId' })
+	if ('deck_id' in payload && payload.deck_id !== deckId) {
+		return res.status(400).json({ error: 'deck_id in body must match path deckId' })
 	}
 
+	const { deck_id: payloadDeckId, ...flashcardFields } = payload
 	const updatePayload = {
-		...payload,
-		cardset_id: cardsetId,
+		...flashcardFields,
+		deck_id: deckId,
 	}
 
 	const { data, error } = await supabase
 		.from('flashcard')
 		.update(updatePayload)
 		.eq('id', flashcardId)
-		.eq('cardset_id', cardsetId)
+		.eq('deck_id', deckId)
 		.select('*')
 
 	if (error) {
@@ -298,20 +299,20 @@ export async function updateFlashcard(req, res) {
 }
 
 export async function deleteFlashcard(req, res) {
-	const { cardsetId, flashcardId } = req.params
+	const { deckId, flashcardId } = req.params
 
-	if (!cardsetId || !flashcardId) {
-		return res.status(400).json({ error: 'Path parameters cardsetId and flashcardId are required' })
+	if (!deckId || !flashcardId) {
+		return res.status(400).json({ error: 'Path parameters deckId and flashcardId are required' })
 	}
 
-	const authz = await authorizeCardsetAccess(req, res, cardsetId, 'write')
+	const authz = await authorizeDeckAccess(req, res, deckId, 'write')
 	if (!authz.allowed) return
 
 	const { data, error } = await supabase
 		.from('flashcard')
 		.delete()
 		.eq('id', flashcardId)
-		.eq('cardset_id', cardsetId)
+		.eq('deck_id', deckId)
 		.select('*')
 
 	if (error) {

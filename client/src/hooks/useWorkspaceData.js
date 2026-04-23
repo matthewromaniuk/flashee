@@ -1,21 +1,22 @@
+// Custom hook for fetching and managing workspace data, including user's decks and courses
 import { useCallback, useEffect, useState } from 'react';
 import { message } from 'antd';
 import { getStoredUserContext } from '../lib/session.js';
 
 export function useWorkspaceData() {
   const auth = getStoredUserContext();
-  const [cardsets, setCardsets] = useState([]);
+  const [decks, setDecks] = useState([]);
   const [courses, setCourses] = useState([]);
-  const [loadingCardsets, setLoadingCardsets] = useState(true);
+  const [loadingDecks, setLoadingDecks] = useState(true);
 
-  const fetchCardsets = useCallback(async () => {
+  const fetchDecks = useCallback(async () => {
     if (!auth.userId || !auth.userEmail) {
-      setLoadingCardsets(false);
+      setLoadingDecks(false);
       return;
     }
 
     try {
-      const response = await fetch(`/api/cardsets/user/${auth.userId}`, {
+      const response = await fetch(`/api/decks/user/${auth.userId}`, {
         headers: {
           'x-user-id': auth.userId,
           'x-user-email': auth.userEmail,
@@ -25,15 +26,15 @@ export function useWorkspaceData() {
       const result = await response.json();
       if (!response.ok) {
         message.error(result.error || 'Failed to load decks');
-        setLoadingCardsets(false);
+        setLoadingDecks(false);
         return;
       }
 
-      setCardsets(result.cardsets ?? []);
+      setDecks(result.decks ?? []);
     } catch {
       message.error('Could not load decks from server.');
     } finally {
-      setLoadingCardsets(false);
+      setLoadingDecks(false);
     }
   }, [auth.userEmail, auth.userId]);
 
@@ -63,18 +64,18 @@ export function useWorkspaceData() {
   }, [auth.userEmail, auth.userId]);
 
   useEffect(() => {
-    fetchCardsets();
+    fetchDecks();
     fetchCourses();
-  }, [fetchCardsets, fetchCourses]);
+  }, [fetchDecks, fetchCourses]);
 
   return {
     auth,
-    cardsets,
+    decks,
     courses,
-    loadingCardsets,
-    setCardsets,
+    loadingDecks,
+    setDecks,
     setCourses,
-    refreshCardsets: fetchCardsets,
+    refreshDecks: fetchDecks,
     refreshCourses: fetchCourses,
   };
 }

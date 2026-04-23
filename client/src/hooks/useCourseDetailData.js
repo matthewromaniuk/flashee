@@ -1,3 +1,4 @@
+//Custom hook for fetching and managing course details and associated decks
 import { useCallback, useEffect, useState } from 'react';
 import { message } from 'antd';
 import { getStoredUserContext } from '../lib/session.js';
@@ -16,39 +17,39 @@ export function useCourseDetailData(courseId) {
     }
 
     try {
-      const [coursesResponse, cardsetsResponse, publicCoursesResponse, publicCardsetsResponse] = await Promise.all([
+      const [coursesResponse, decksResponse, publicCoursesResponse, publicDecksResponse] = await Promise.all([
         fetch(`/api/courses/user/${auth.userId}`, {
           headers: {
             'x-user-id': auth.userId,
             'x-user-email': auth.userEmail,
           },
         }),
-        fetch(`/api/cardsets/user/${auth.userId}`, {
+        fetch(`/api/decks/user/${auth.userId}`, {
           headers: {
             'x-user-id': auth.userId,
             'x-user-email': auth.userEmail,
           },
         }),
         fetch('/api/courses/public'),
-        fetch('/api/cardsets/public'),
+        fetch('/api/decks/public'),
       ]);
 
       const coursesResult = await coursesResponse.json();
-      const cardsetsResult = await cardsetsResponse.json();
+      const decksResult = await decksResponse.json();
       const publicCoursesResult = await publicCoursesResponse.json();
-      const publicCardsetsResult = await publicCardsetsResponse.json();
+      const publicDecksResult = await publicDecksResponse.json();
 
       if (!coursesResponse.ok) {
         throw new Error(coursesResult.error || 'Failed to load course details');
       }
-      if (!cardsetsResponse.ok) {
-        throw new Error(cardsetsResult.error || 'Failed to load decks');
+      if (!decksResponse.ok) {
+        throw new Error(decksResult.error || 'Failed to load decks');
       }
       if (!publicCoursesResponse.ok) {
         throw new Error(publicCoursesResult.error || 'Failed to load public courses');
       }
-      if (!publicCardsetsResponse.ok) {
-        throw new Error(publicCardsetsResult.error || 'Failed to load public decks');
+      if (!publicDecksResponse.ok) {
+        throw new Error(publicDecksResult.error || 'Failed to load public decks');
       }
 
       const selectedCourse = (coursesResult.courses ?? []).find(
@@ -59,13 +60,13 @@ export function useCourseDetailData(courseId) {
       );
 
       const courseDeckSource = selectedCourse
-        ? (cardsetsResult.cardsets ?? [])
-        : (publicCardsetsResult.cardsets ?? []);
+        ? (decksResult.decks ?? [])
+        : (publicDecksResult.decks ?? []);
 
       setCourse(selectedCourse ?? selectedPublicCourse ?? null);
       setCanEditCourse(Boolean(selectedCourse));
       setCourseDecks(courseDeckSource.filter(
-        (cardset) => String(cardset.course_id) === String(courseId)
+        (deck) => String(deck.course_id) === String(courseId)
       ));
     } catch (error) {
       message.error(error instanceof Error ? error.message : 'Could not load course page from server.');
@@ -79,13 +80,10 @@ export function useCourseDetailData(courseId) {
   }, [fetchCourseAndDecks]);
 
   return {
-    auth,
     course,
     courseDecks,
     loading,
     canEditCourse,
     setCourse,
-    setCourseDecks,
-    refreshCourseAndDecks: fetchCourseAndDecks,
   };
 }

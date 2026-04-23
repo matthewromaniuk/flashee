@@ -1,3 +1,4 @@
+//Custom hook for fetching and managing search results data based on query
 import { useCallback, useEffect, useState } from 'react';
 import { message } from 'antd';
 import { getStoredUserContext } from '../lib/session.js';
@@ -21,47 +22,47 @@ export function useSearchResultsData(query) {
     }
 
     try {
-      const [coursesResponse, cardsetsResponse, publicCoursesResponse, publicCardsetsResponse] = await Promise.all([
+      const [coursesResponse, decksResponse, publicCoursesResponse, publicDecksResponse] = await Promise.all([
         fetch(`/api/courses/user/${auth.userId}`, {
           headers: {
             'x-user-id': auth.userId,
             'x-user-email': auth.userEmail,
           },
         }),
-        fetch(`/api/cardsets/user/${auth.userId}`, {
+        fetch(`/api/decks/user/${auth.userId}`, {
           headers: {
             'x-user-id': auth.userId,
             'x-user-email': auth.userEmail,
           },
         }),
         fetch('/api/courses/public'),
-        fetch('/api/cardsets/public'),
+        fetch('/api/decks/public'),
       ]);
 
       const coursesResult = await coursesResponse.json();
-      const cardsetsResult = await cardsetsResponse.json();
+      const decksResult = await decksResponse.json();
       const publicCoursesResult = await publicCoursesResponse.json();
-      const publicCardsetsResult = await publicCardsetsResponse.json();
+      const publicDecksResult = await publicDecksResponse.json();
 
-      if (!coursesResponse.ok || !cardsetsResponse.ok || !publicCoursesResponse.ok || !publicCardsetsResponse.ok) {
+      if (!coursesResponse.ok || !decksResponse.ok || !publicCoursesResponse.ok || !publicDecksResponse.ok) {
         throw new Error('Failed to load search results');
       }
 
       const yourCourseIds = new Set((coursesResult.courses ?? []).map((course) => String(course.id)));
-      const yourDeckIds = new Set((cardsetsResult.cardsets ?? []).map((cardset) => String(cardset.id)));
+      const yourDeckIds = new Set((decksResult.decks ?? []).map((deck) => String(deck.id)));
 
       const matchedYourCourses = (coursesResult.courses ?? []).filter((course) => {
         if (!normalizedQuery) return false;
         return matchesQuery(course.name, normalizedQuery) || matchesQuery(course.description, normalizedQuery);
       });
 
-      const matchedYourDecks = (cardsetsResult.cardsets ?? []).filter((cardset) => {
+      const matchedYourDecks = (decksResult.decks ?? []).filter((deck) => {
         if (!normalizedQuery) return false;
         const courseName = String(
-          (coursesResult.courses ?? []).find((course) => String(course.id) === String(cardset.course_id))?.name ?? ''
+          (coursesResult.courses ?? []).find((course) => String(course.id) === String(deck.course_id))?.name ?? ''
         );
-        return matchesQuery(cardset.name, normalizedQuery)
-          || matchesQuery(cardset.description, normalizedQuery)
+        return matchesQuery(deck.name, normalizedQuery)
+          || matchesQuery(deck.description, normalizedQuery)
           || matchesQuery(courseName, normalizedQuery);
       });
 
@@ -71,14 +72,14 @@ export function useSearchResultsData(query) {
         return matchesQuery(course.name, normalizedQuery) || matchesQuery(course.description, normalizedQuery);
       });
 
-      const matchedPublicDecks = (publicCardsetsResult.cardsets ?? []).filter((cardset) => {
+      const matchedPublicDecks = (publicDecksResult.decks ?? []).filter((deck) => {
         if (!normalizedQuery) return false;
-        if (yourDeckIds.has(String(cardset.id))) return false;
+        if (yourDeckIds.has(String(deck.id))) return false;
         const courseName = String(
-          (publicCoursesResult.courses ?? []).find((course) => String(course.id) === String(cardset.course_id))?.name ?? ''
+          (publicCoursesResult.courses ?? []).find((course) => String(course.id) === String(deck.course_id))?.name ?? ''
         );
-        return matchesQuery(cardset.name, normalizedQuery)
-          || matchesQuery(cardset.description, normalizedQuery)
+        return matchesQuery(deck.name, normalizedQuery)
+          || matchesQuery(deck.description, normalizedQuery)
           || matchesQuery(courseName, normalizedQuery);
       });
 

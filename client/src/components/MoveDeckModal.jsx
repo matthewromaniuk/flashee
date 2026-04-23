@@ -1,19 +1,20 @@
+//Modal used for moving a deck to a course
 import { useEffect, useState } from 'react';
 import { Form, Modal, Select, message } from 'antd';
 
-const MoveDeckModal = ({ open, cardset, courses, onCancel, onMoved, auth }) => {
+const MoveDeckModal = ({ open, deck, courses, onCancel, onMoved, auth }) => {
   const [form] = Form.useForm();
   const [moving, setMoving] = useState(false);
 
   useEffect(() => {
-    if (!open || !cardset) {
+    if (!open || !deck) {
       return;
     }
 
     form.setFieldsValue({
-      courseId: cardset?.course_id ? String(cardset.course_id) : '__none__',
+      courseId: deck?.course_id ? String(deck.course_id) : '__none__',
     });
-  }, [open, cardset, form]);
+  }, [open, deck, form]);
 
   useEffect(() => {
     if (!open) {
@@ -27,7 +28,7 @@ const MoveDeckModal = ({ open, cardset, courses, onCancel, onMoved, auth }) => {
   };
 
   const handleMove = async () => {
-    if (!cardset?.id) {
+    if (!deck?.id) {
       return;
     }
 
@@ -42,7 +43,7 @@ const MoveDeckModal = ({ open, cardset, courses, onCancel, onMoved, auth }) => {
 
       const nextCourseId = values.courseId === '__none__' ? null : values.courseId;
 
-      const response = await fetch(`/api/cardsets/${cardset.id}`, {
+      const response = await fetch(`/api/decks/${deck.id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -61,8 +62,8 @@ const MoveDeckModal = ({ open, cardset, courses, onCancel, onMoved, auth }) => {
 
       message.success(nextCourseId ? 'Deck moved to course' : 'Deck removed from course');
       onMoved?.({
-        cardsetId: cardset.id,
-        courseId: result?.cardset?.course_id ?? nextCourseId,
+        deckId: deck.id,
+        courseId: result?.deck?.course_id ?? nextCourseId,
       });
       handleCancel();
     } catch {
@@ -74,7 +75,7 @@ const MoveDeckModal = ({ open, cardset, courses, onCancel, onMoved, auth }) => {
 
   return (
     <Modal
-      title={cardset ? `Move "${cardset.name}"` : 'Move Deck'}
+      title={deck ? `Move "${deck.name}"` : 'Move Deck'}
       open={open}
       onCancel={handleCancel}
       onOk={handleMove}

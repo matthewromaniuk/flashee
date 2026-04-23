@@ -1,3 +1,4 @@
+//App landing page with intro, call to action, and route to sign up page
 import { useNavigate} from 'react-router-dom';
 import LogoName from "../components/LogoName";
 import { Button, Layout, theme, Flex, Typography, Space } from 'antd';

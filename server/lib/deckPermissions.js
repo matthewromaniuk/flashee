@@ -16,22 +16,22 @@ export function getRequesterEmail(req) {
   return null
 }
 
-export async function getCardsetRole(cardsetId, userEmail) {
+export async function getDeckRole(deckId, userEmail) {
   const { data, error } = await supabase
-    .from('card_user')
-    .select('cardset_id, role')
+    .from('deck_user')
+    .select('deck_id, role')
     .eq('user_email', userEmail)
 
   if (error) {
     return { role: null, error }
   }
 
-  const targetId = String(cardsetId)
+  const targetId = String(deckId)
   const match = (data ?? []).find((row) => {
     try {
-      return BigInt(row.cardset_id) === BigInt(targetId)
+      return BigInt(row.deck_id) === BigInt(targetId)
     } catch {
-      return String(row.cardset_id) === targetId
+      return String(row.deck_id) === targetId
     }
   })
 

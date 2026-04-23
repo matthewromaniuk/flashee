@@ -1,3 +1,4 @@
+//Handles file uploads, uses Ant Design's Upload component to allow users to select and upload file
 import { UploadOutlined } from '@ant-design/icons';
 import { Button, message, Upload } from 'antd';
 

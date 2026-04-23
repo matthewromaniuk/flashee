@@ -1,3 +1,4 @@
+//Provides consistent styling for page content across the app
 import { Layout } from 'antd'
 
 const { Content } = Layout

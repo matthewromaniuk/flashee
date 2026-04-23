@@ -1,3 +1,4 @@
+//Modal used for creating new deck, handles both AI and manual creation modes with form input and submission to the backend API
 import { useEffect, useState } from 'react';
 import {
   Button,
@@ -259,7 +260,7 @@ const CreateDeckModal = ({ open, onCancel, onCreated, auth }) => {
 
       const flashcards = creationMode === 'ai' ? aiFlashcards : manualFlashcards;
 
-      const deckResponse = await fetch('/api/cardsets/decks', {
+      const deckResponse = await fetch('/api/decks', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -279,14 +280,14 @@ const CreateDeckModal = ({ open, onCancel, onCreated, auth }) => {
         return;
       }
 
-      const cardsetId = deckResult?.cardset?.id;
-      if (!cardsetId) {
+      const deckId = deckResult?.deck?.id;
+      if (!deckId) {
         message.error('Deck created but id was not returned.');
         return;
       }
 
       if (flashcards.length > 0) {
-        const flashcardsResponse = await fetch(`/api/cardsets/${cardsetId}/flashcards/bulk`, {
+        const flashcardsResponse = await fetch(`/api/decks/${deckId}/flashcards/bulk`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

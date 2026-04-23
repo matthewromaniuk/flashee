@@ -1,3 +1,4 @@
+//Modal used for creating a new course, handles form input and submission to the backend API
 import { useEffect, useState } from 'react';
 import { Form, Input, Modal, Radio, message } from 'antd';
 
@@ -84,7 +85,7 @@ const CreateCourseModal = ({ open, onCancel, onCreated, auth }) => {
           name="description"
           label="Description"
         >
-          <Input.TextArea rows={4} placeholder="Short summary of this course folder" />
+          <Input.TextArea rows={4} placeholder="Short summary of this course" />
         </Form.Item>
 
         <Form.Item

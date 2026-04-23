@@ -1,3 +1,4 @@
+//
 import express from "express";
 import multer from 'multer';
 
@@ -7,13 +8,13 @@ import { aiFlashcardUploadLimit, createAiFlashcards, createAiFlashcardsStream } 
 
 import {
   createDeck,
-  createCardset,
-  deleteCardset,
-  getPublicCardsets,
-  getCardsetsByUserEmail,
-  updateCardset,
-  forkCardset,
-} from './controllers/cardsetController.js';
+  deleteDeck,
+  getDeckById,
+  getPublicDecks,
+  getDecksByUserEmail,
+  updateDeck,
+  forkDeck,
+} from './controllers/deckController.js';
 
 import {
   createCourse,
@@ -43,7 +44,7 @@ console.log(`[server] Starting Express app on port ${PORT}...`);
 
 const authRouter = express.Router();
 const aiRouter = express.Router();
-const cardsetRouter = express.Router();
+const deckRouter = express.Router();
 const courseRouter = express.Router();
 const flashcardRouter = express.Router({ mergeParams: true });
 
@@ -88,15 +89,16 @@ aiRouter.post(
   createAiFlashcardsStream,
 );
 
-cardsetRouter.get('/user/:userId', getCardsetsByUserEmail);
-cardsetRouter.get('/public', getPublicCardsets);
-cardsetRouter.post('/decks', createDeck);
-cardsetRouter.post('/', createCardset);
-cardsetRouter.post('/:id/fork', forkCardset);
-cardsetRouter.patch('/:id', updateCardset);
-cardsetRouter.delete('/:id', deleteCardset);
-cardsetRouter.use('/:cardsetId/flashcards', flashcardRouter);
-//cardset functions
+deckRouter.get('/user/:userId', getDecksByUserEmail);
+deckRouter.get('/public', getPublicDecks);
+deckRouter.get('/:id', getDeckById);
+deckRouter.post('/decks', createDeck);
+deckRouter.post('/', createDeck);
+deckRouter.post('/:id/fork', forkDeck);
+deckRouter.patch('/:id', updateDeck);
+deckRouter.delete('/:id', deleteDeck);
+deckRouter.use('/:deckId/flashcards', flashcardRouter);
+//deck functions
 
 courseRouter.get('/user/:userId', getCoursesByUserId);
 courseRouter.get('/public', getPublicCourses);
@@ -116,13 +118,13 @@ flashcardRouter.delete('/:flashcardId', deleteFlashcard);
 
 app.use('/api/auth', authRouter);
 app.use('/api/ai', aiRouter);
-app.use('/api/cardsets', cardsetRouter);
+app.use('/api/decks', deckRouter);
 app.use('/api/courses', courseRouter);
 
 
 
-app.get("/cardsets", (_, response) =>
-  response.json({ info: "This endpoint will return all cardsets" })
+app.get("/decks", (_, response) =>
+  response.json({ info: "This endpoint will return all decks" })
 );
 
 app.get("/", (_, response) =>
