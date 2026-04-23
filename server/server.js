@@ -8,6 +8,7 @@ import { aiFlashcardUploadLimit, createAiFlashcards, createAiFlashcardsStream } 
 
 import {
   createDeck,
+<<<<<<< HEAD
   deleteDeck,
   getDeckById,
   getPublicDecks,
@@ -23,6 +24,14 @@ import {
   getCoursesByUserId,
   updateCourse,
 } from './controllers/courseController.js';
+=======
+  createCardset,
+  deleteCardset,
+  getCardsetsByUserId,
+  getCardsetsByUserEmail,
+  updateCardset,
+} from './controllers/cardsetController';
+>>>>>>> parent of 36bf9aa (documentation and cleaning)
 
 import {
   bulkCreateFlashcards,
@@ -75,6 +84,7 @@ authRouter.post('/sign-up', signUp);
 authRouter.post('/sign-in', signIn);
 //auth functions
 
+<<<<<<< HEAD
 // For AI flashcard endpoint, support both JSON and multipart file uploads
 aiRouter.post(
   '/flashcards',
@@ -106,6 +116,16 @@ courseRouter.post('/', createCourse);
 courseRouter.patch('/:id', updateCourse);
 courseRouter.delete('/:id', deleteCourse);
 //course functions
+=======
+cardsetRouter.get('/', getCardsetsByUserEmail);
+cardsetRouter.get('/user/:userId', getCardsetsByUserId);
+cardsetRouter.post('/decks', createDeck);
+cardsetRouter.post('/', createCardset);
+cardsetRouter.patch('/:id', updateCardset);
+cardsetRouter.delete('/:id', deleteCardset);
+cardsetRouter.use('/:cardsetId/flashcards', flashcardRouter);
+//cardset functions
+>>>>>>> parent of 36bf9aa (documentation and cleaning)
 
 flashcardRouter.get('/', listFlashcards);
 flashcardRouter.post('/', createFlashcard);
