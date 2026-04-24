@@ -1,20 +1,10 @@
 //AI flashcard generation client using local Ollama model
-import dotenv from 'dotenv'
-import path from 'path'
-import { fileURLToPath } from 'url'
-
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = path.dirname(__filename)
-
-dotenv.config({ path: path.resolve(__dirname, '../../.env') })
-
-const OLLAMA_HOST = process.env.OLLAMA_HOST
-const OLLAMA_GENERATE_URL = process.env.OLLAMA_GENERATE_URL
-const OLLAMA_MODEL = process.env.OLLAMA_MODEL
-const OLLAMA_TIMEOUT_MS = Number.parseInt(process.env.OLLAMA_TIMEOUT_MS ?? '', 10)
-const OLLAMA_FLASHCARD_COUNT = Number.parseInt(process.env.OLLAMA_FLASHCARD_COUNT ?? '', 10)
-const OLLAMA_CHUNK_SIZE = Number.parseInt(process.env.OLLAMA_CHUNK_SIZE ?? '', 10)
-const OLLAMA_MAX_CHUNK_SIZE = Number.parseInt(process.env.OLLAMA_MAX_CHUNK_SIZE ?? '', 10)
+const DEFAULT_OLLAMA_HOST = process.env.OLLAMA_HOST || 'http://127.0.0.1:11434'
+const DEFAULT_OLLAMA_GENERATE_URL = process.env.OLLAMA_GENERATE_URL || `${DEFAULT_OLLAMA_HOST.replace(/\/$/, '')}/api/generate`
+const DEFAULT_MODEL = process.env.OLLAMA_MODEL || 'mistral:7b-instruct'
+const DEFAULT_TIMEOUT_MS = Number.parseInt(process.env.OLLAMA_TIMEOUT_MS || '25000', 10)
+const DEFAULT_FLASHCARD_COUNT = Number.parseInt(process.env.OLLAMA_FLASHCARD_COUNT || '10', 10)
+const DEFAULT_CHUNK_SIZE = Number.parseInt(process.env.OLLAMA_CHUNK_SIZE || '3000', 10)
 const QUESTION_TYPE = {
 	MULTIPLE_CHOICE: 'multiple-choice',
 	TRUE_FALSE: 'true-false',
@@ -180,7 +170,7 @@ async function runLocalInference({
 	systemPrompt,
 	prompt,
 	timeoutMs,
-	generateUrl = OLLAMA_GENERATE_URL,
+	generateUrl = DEFAULT_OLLAMA_GENERATE_URL,
 }) {
 	const controller = new AbortController()
 	const timeoutId = setTimeout(() => controller.abort(), Number.isFinite(timeoutMs) && timeoutMs > 0 ? timeoutMs : 60000)
@@ -248,7 +238,7 @@ function normalizeFlashcard(entry) {
 	return null
 }
 
-//Determines if a flashcard answer is true or false/multiple choice or not
+//Determines if a flashcard answer should be treated as a short, fixed-choice answer.
 function isFixedChoiceAnswer(value) {
 	if (typeof value !== 'string') {
 		return false
@@ -288,21 +278,14 @@ function parseFlashcardsFromJson(jsonData) {
 }
 
 //Splits input text into chunks of a specified size, trying to split on paragraph boundaries when possible
-function splitTextIntoChunks(text, chunkSize = OLLAMA_CHUNK_SIZE) {
+function splitTextIntoChunks(text, chunkSize = DEFAULT_CHUNK_SIZE) {
 	if (!text || text.trim().length === 0) {
 		return []
 	}
 
 	const chunks = []
 	let currentChunk = ''
-	const requestedChunkSize = Number.parseInt(String(chunkSize), 10)
-	const safeChunkSize = Math.max(
-		1,
-		Math.min(
-			OLLAMA_MAX_CHUNK_SIZE,
-			Number.isFinite(requestedChunkSize) ? requestedChunkSize : OLLAMA_CHUNK_SIZE
-		)
-	)
+	const safeChunkSize = Math.max(1, Number.parseInt(String(chunkSize || DEFAULT_CHUNK_SIZE), 10))
 
 	const paragraphs = text.split(/\n\n+/)
 
@@ -353,7 +336,7 @@ function buildChunksForFlashcardTarget(text, flashcardCount) {
 	const safeFlashcardCount = Math.max(1, Number.parseInt(String(flashcardCount || 1), 10))
 	const proportionalChunkSize = Math.max(
 		400,
-		Math.min(OLLAMA_MAX_CHUNK_SIZE, Math.ceil(text.length / safeFlashcardCount))
+		Math.ceil(text.length / safeFlashcardCount)
 	)
 
 	const chunks = splitTextIntoChunks(text, proportionalChunkSize).filter(Boolean)
@@ -364,11 +347,11 @@ function buildChunksForFlashcardTarget(text, flashcardCount) {
 async function generateSingleFlashcard({
 	documentText,
 	keywords = [],
-	model = OLLAMA_MODEL,
-	timeoutMs = OLLAMA_TIMEOUT_MS,
+	model = DEFAULT_MODEL,
+	timeoutMs = DEFAULT_TIMEOUT_MS,
 	previousFlashcards = [],
 	requiredQuestionType = null,
-	generateUrl = OLLAMA_GENERATE_URL,
+	generateUrl = DEFAULT_OLLAMA_GENERATE_URL,
 }) {
 	const systemPrompt = buildSystemPrompt()
 	const prompt = buildPrompt(documentText, keywords, previousFlashcards, requiredQuestionType)
@@ -400,10 +383,10 @@ async function generateSingleFlashcard({
 export async function generateFlashcardsFromDocumentText({
 	documentText,
 	keywords = [],
-	model = OLLAMA_MODEL,
-	timeoutMs = OLLAMA_TIMEOUT_MS,
-	flashcardCount = OLLAMA_FLASHCARD_COUNT,
-	generateUrl = OLLAMA_GENERATE_URL,
+	model = DEFAULT_MODEL,
+	timeoutMs = DEFAULT_TIMEOUT_MS,
+	flashcardCount = DEFAULT_FLASHCARD_COUNT,
+	generateUrl = DEFAULT_OLLAMA_GENERATE_URL,
 	onProgress = null,
 } = {}) {
 	if (!documentText || documentText.trim().length === 0) {
