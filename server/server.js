@@ -36,7 +36,7 @@ import {
 
 //Initializes Express App and configures routers
 const app = express();
-const PORT = Number.parseInt(process.env.PORT || '3001', 10);
+const PORT = Number.parseInt(process.env.PORT || '3002', 10);
 
 app.use(express.json());
 

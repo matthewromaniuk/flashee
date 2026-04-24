@@ -21,6 +21,65 @@ function normalizeKeywords(keywords) {
 		.slice(0, 25)
 }
 
+function normalizeText(value) {
+	if (typeof value !== 'string') {
+		return ''
+	}
+
+	return value
+		.toLowerCase()
+		.replace(/[^a-z0-9]+/g, ' ')
+		.replace(/\s+/g, ' ')
+		.trim()
+}
+
+//checks if a text chunk contains any keyword, allowing for flexible matching of multi-word keywords in any order
+function chunkContainsAnyKeyword(text, keywords) {
+	if (typeof text !== 'string' || !Array.isArray(keywords) || keywords.length === 0) {
+		return true
+	}
+
+	const normalizedText = normalizeText(text)
+	if (!normalizedText) {
+		return false
+	}
+
+	return keywords.some((keyword) => {
+		const normalizedKeyword = normalizeText(keyword)
+		if (!normalizedKeyword) {
+			return false
+		}
+
+		if (normalizedText.includes(normalizedKeyword)) {
+			return true
+		}
+
+		const keywordTokens = normalizedKeyword.split(' ').filter(Boolean)
+		return keywordTokens.length > 0 && keywordTokens.every((token) => normalizedText.includes(token))
+	})
+}
+
+//Partitions text chunks into those that match any of the keywords and those that don't, to prioritize keyword-matching chunks for flashcard generation
+function partitionChunksByKeywordMatch(chunks, keywords) {
+	if (!Array.isArray(chunks) || chunks.length === 0) {
+		return { keywordChunks: [], fallbackChunks: [] }
+	}
+
+	if (!Array.isArray(keywords) || keywords.length === 0) {
+		return { keywordChunks: chunks, fallbackChunks: [] }
+	}
+
+	return chunks.reduce((acc, chunk) => {
+		if (chunkContainsAnyKeyword(chunk?.text ?? '', keywords)) {
+			acc.keywordChunks.push(chunk)
+		} else {
+			acc.fallbackChunks.push(chunk)
+		}
+		return acc
+	}, { keywordChunks: [], fallbackChunks: [] })
+}
+
+//Initial system prompt with instructions for the LLM to generate flashcards in a specific format
 function buildSystemPrompt() {
 	return `Generate exactly 1 concise flashcard for studying purposes with the source text below. ` +
 		`Return only a single valid JSON object, not an array. ` +
@@ -59,7 +118,7 @@ function buildPrompt(sourceText, keywords = [], previousFlashcards = [], require
 	const keywordSection = normalizedKeywords.length > 0
 		? [
 			'',
-			'Potential keywords/topics to prioritize:',
+			'Ensure prioritization of the following keywords/topics to prioritize:',
 			...normalizedKeywords.map((keyword) => `- ${keyword}`),
 		]
 		: []
@@ -402,8 +461,14 @@ export async function generateFlashcardsFromDocumentText({
 
 	const allFlashcards = []
 	const maxAttempts = flashcardCount * 2
+	const normalizedKeywords = normalizeKeywords(keywords)
 	const generationChunks = buildChunksForFlashcardTarget(documentText, flashcardCount)
-	const activeChunkPool = generationChunks.map((text, index) => ({ index, text }))
+	const {
+		keywordChunks: prioritizedChunkPool,
+		fallbackChunks: fallbackChunkPool,
+	} = partitionChunksByKeywordMatch(generationChunks.map((text, index) => ({ index, text })), normalizedKeywords)
+	let activeChunkPool = prioritizedChunkPool.length > 0 ? prioritizedChunkPool : fallbackChunkPool
+	let usingFallbackChunks = prioritizedChunkPool.length === 0 && fallbackChunkPool.length > 0
 	let chunkAttemptIndex = 0
 	let attempts = 0
 	let consecutiveFailures = 0
@@ -413,8 +478,17 @@ export async function generateFlashcardsFromDocumentText({
 		const nextFlashcardNumber = allFlashcards.length + 1
 		const requiredQuestionType = getRequiredQuestionTypeForAttempt(attempts)
 		if (activeChunkPool.length === 0) {
-			console.warn('[aiGenerationClient] No remaining chunks to use after successful generations')
-			break
+			if (!usingFallbackChunks && fallbackChunkPool.length > 0) {
+				usingFallbackChunks = true
+				activeChunkPool = fallbackChunkPool
+				chunkAttemptIndex = 0
+				console.log('[aiGenerationClient] Keyword chunks exhausted, switching to fallback chunks', {
+					fallbackChunkCount: activeChunkPool.length,
+				})
+			} else {
+				console.warn('[aiGenerationClient] No remaining chunks to use after successful generations')
+				break
+			}
 		}
 
 		const chunkPoolIndex = chunkAttemptIndex % activeChunkPool.length
@@ -430,6 +504,7 @@ export async function generateFlashcardsFromDocumentText({
 			chunkLength: currentChunk?.text?.length ?? 0,
 			remainingChunkCount: activeChunkPool.length,
 			sourceTextLength: sourceTextForAttempt.length,
+			usingFallbackChunks,
 		})
 
 		try {
