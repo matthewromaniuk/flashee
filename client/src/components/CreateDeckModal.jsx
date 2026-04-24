@@ -1,4 +1,4 @@
-//Modal used for creating new deck, handles both AI and manual creation modes with form input and submission to the backend API
+//Modal used for creating new deck, handles both AI and manual creation types with form input and submission to the backend API
 import { useEffect, useState } from 'react';
 import {
   Button,
@@ -19,7 +19,7 @@ import { DeleteOutlined, PlusOutlined, UploadOutlined } from '@ant-design/icons'
 const { Text } = Typography;
 
 const CREATE_DECK_INITIAL_VALUES = {
-  creationMode: 'ai',
+  creationType: 'ai',
   isPublic: false,
   tags: [],
   flashcardCount: 10,
@@ -107,7 +107,7 @@ const CreateDeckModal = ({ open, onCancel, onCreated, auth }) => {
   const [submitting, setSubmitting] = useState(false);
   const [fileList, setFileList] = useState([]);
   const [generationProgress, setGenerationProgress] = useState(null);
-  const selectedCreationMode = Form.useWatch('creationMode', form) ?? 'ai';
+  const selectedCreationType = Form.useWatch('creationType', form) ?? 'ai';
 
   useEffect(() => {
     if (!open) {
@@ -140,18 +140,18 @@ const CreateDeckModal = ({ open, onCancel, onCreated, auth }) => {
       }
 
       const selectedFile = fileList?.[0]?.originFileObj ?? null;
-      const creationMode = values.creationMode ?? 'ai';
-      const aiKeywords = creationMode === 'ai'
+      const creationType = values.creationType ?? 'ai';
+      const aiKeywords = creationType === 'ai'
         ? (values.tags ?? [])
             .map((tag) => (typeof tag === 'string' ? tag.trim() : ''))
             .filter((tag) => !!tag)
         : [];
-      const requestedFlashcardCount = creationMode === 'ai' && Number.isInteger(values.flashcardCount)
+      const requestedFlashcardCount = creationType === 'ai' && Number.isInteger(values.flashcardCount)
         ? Math.min(50, Math.max(1, values.flashcardCount))
         : 10;
-      const aiRequested = creationMode === 'ai';
+      const aiRequested = creationType === 'ai';
 
-      const manualFlashcards = creationMode === 'manual'
+      const manualFlashcards = creationType === 'manual'
         ? (values.flashcards ?? [])
             .filter((item) => item?.question?.trim() && item?.answer?.trim())
             .map((item) => ({
@@ -162,7 +162,7 @@ const CreateDeckModal = ({ open, onCancel, onCreated, auth }) => {
 
       let aiFlashcards = [];
 
-      if (creationMode === 'ai' && selectedFile) {
+      if (creationType === 'ai' && selectedFile) {
         const formData = new FormData();
         formData.append('file', selectedFile);
         formData.append('keywords', JSON.stringify(aiKeywords));
@@ -205,7 +205,7 @@ const CreateDeckModal = ({ open, onCancel, onCreated, auth }) => {
 
           message.warning(error.message || 'AI flashcard generation failed. Continuing with manual flashcards.');
         }
-      } else if (creationMode === 'ai' && aiKeywords.length > 0) {
+      } else if (creationType === 'ai' && aiKeywords.length > 0) {
         const requestBody = {
           documentText: `Generate flashcards focused on these keywords:\n${aiKeywords.map((keyword) => `- ${keyword}`).join('\n')}`,
           keywords: aiKeywords,
@@ -248,17 +248,17 @@ const CreateDeckModal = ({ open, onCancel, onCreated, auth }) => {
 
           message.warning(error.message || 'AI flashcard generation failed. Continuing with manual flashcards.');
         }
-      } else if (creationMode === 'ai') {
+      } else if (creationType === 'ai') {
         message.error('Upload a source file or provide AI tags for generation.');
         return;
       }
 
-      if (creationMode === 'manual' && manualFlashcards.length === 0) {
+      if (creationType === 'manual' && manualFlashcards.length === 0) {
         message.error('Add at least one manual flashcard.');
         return;
       }
 
-      const flashcards = creationMode === 'ai' ? aiFlashcards : manualFlashcards;
+      const flashcards = creationType === 'ai' ? aiFlashcards : manualFlashcards;
 
       const deckResponse = await fetch('/api/decks', {
         method: 'POST',
@@ -270,7 +270,7 @@ const CreateDeckModal = ({ open, onCancel, onCreated, auth }) => {
           name: values.name,
           isPublic: values.isPublic ?? false,
           tags: values.tags ?? [],
-          source_file_name: creationMode === 'ai' ? (selectedFile?.name ?? null) : null,
+          source_file_name: creationType === 'ai' ? (selectedFile?.name ?? null) : null,
         }),
       });
 
@@ -338,12 +338,12 @@ const CreateDeckModal = ({ open, onCancel, onCreated, auth }) => {
         layout="vertical"
         initialValues={CREATE_DECK_INITIAL_VALUES}
         onValuesChange={(changedValues) => {
-          if (changedValues.creationMode === 'manual') {
+          if (changedValues.creationType === 'manual') {
             setFileList([]);
             form.setFieldValue('tags', []);
           }
 
-          if (changedValues.creationMode === 'ai') {
+          if (changedValues.creationType === 'ai') {
             form.setFieldValue('flashcards', []);
           }
         }}
@@ -368,9 +368,9 @@ const CreateDeckModal = ({ open, onCancel, onCreated, auth }) => {
         </Form.Item>
 
         <Form.Item
-          name="creationMode"
-          label="Flashcard Mode"
-          rules={[{ required: true, message: 'Please choose a mode' }]}
+          name="creationType"
+          label="Flashcard Type"
+          rules={[{ required: true, message: 'Please choose a type' }]}
         >
           <Radio.Group optionType="button" buttonStyle="solid">
             <Radio value="ai">AI</Radio>
@@ -378,7 +378,7 @@ const CreateDeckModal = ({ open, onCancel, onCreated, auth }) => {
           </Radio.Group>
         </Form.Item>
 
-        {selectedCreationMode === 'ai' && (
+        {selectedCreationType === 'ai' && (
           <>
             <div style={{ marginBottom: 12 }}>
               <Text strong style={{ fontSize: 16 }}>
@@ -436,7 +436,7 @@ const CreateDeckModal = ({ open, onCancel, onCreated, auth }) => {
           </>
         )}
 
-        {selectedCreationMode === 'manual' && (
+        {selectedCreationType === 'manual' && (
           <>
             <div style={{ marginTop: 24, marginBottom: 12 }}>
               <Text strong style={{ fontSize: 16 }}>

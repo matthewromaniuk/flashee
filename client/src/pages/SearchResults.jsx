@@ -9,6 +9,7 @@ import {
   Typography,
   theme,
 } from 'antd';
+import { ArrowLeftOutlined } from '@ant-design/icons';
 import LogoName from '../components/LogoName';
 import HeaderSearch from '../components/HeaderSearch';
 import DeckBubble from '../components/DeckBubble';
@@ -91,19 +92,18 @@ const SearchResults = () => {
   return (
     <Layout style={{ minHeight: '100vh', width: '100%' }}>
       <Header style={{ background: headerBg, padding: 0, paddingRight: 15, paddingLeft: 5 }}>
-        <Flex align="center" style={{ width: '100%' }}>
-          <div style={{ cursor: 'pointer' }} onClick={() => navigate('/')}>
-            <LogoName width={150} />
-          </div>
-          <div style={{ flex: 1, display: 'flex', justifyContent: 'center', padding: '0 16px' }}>
-            <HeaderSearch />
-          </div>
-          <Flex gap="small">
-            <Button onClick={() => navigate('/workspace')}>Back to Workspace</Button>
-            <Button type="primary" onClick={handleLogout}>Log Out</Button>
+          <Flex align="center" style={{ width: '100%' }}>
+            <div style={{ cursor: 'pointer' }} onClick={() => navigate('/')}>
+              <LogoName width={150} />
+            </div>
+            <div style={{ flex: 1, display: 'flex', justifyContent: 'center', padding: '0 16px' }}>
+              <HeaderSearch />
+            </div>
+            <Flex gap="small">
+              <Button type="primary" onClick={handleLogout}>Log Out</Button>
+            </Flex>
           </Flex>
-        </Flex>
-      </Header>
+        </Header>
 
       <Layout style={{ flex: 1, minHeight: 0 }}>
         <Content
@@ -116,10 +116,14 @@ const SearchResults = () => {
           }}
         >
           <Flex vertical gap={18}>
-            <Flex align="center" justify="space-between" wrap>
-              <Title level={3} style={{ margin: 0 }}>
+            <Flex align="center" justify="space-between" wrap gap={12}>
+              <Button type="default" icon={<ArrowLeftOutlined />} onClick={() => navigate('/workspace')}>
+                Back to Workspace
+              </Button>
+              <Title level={3} style={{ margin: 0, textAlign: 'center', flex: 1 }}>
                 Search Results
               </Title>
+              <div style={{ width: 152 }} />
             </Flex>
 
             {loading ? (

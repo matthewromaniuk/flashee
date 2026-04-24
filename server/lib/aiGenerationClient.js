@@ -390,7 +390,6 @@ export async function generateFlashcardsFromDocumentText({
 	const generationChunks = buildChunksForFlashcardTarget(documentText, flashcardCount)
 	const activeChunkPool = generationChunks.map((text, index) => ({ index, text }))
 	let chunkAttemptIndex = 0
-	let forceChunkMode = false
 	let attempts = 0
 	let consecutiveFailures = 0
 
@@ -398,33 +397,22 @@ export async function generateFlashcardsFromDocumentText({
 		attempts++
 		const nextFlashcardNumber = allFlashcards.length + 1
 		const requiredQuestionType = getRequiredQuestionTypeForAttempt(attempts)
-		const isChunkMode = forceChunkMode || allFlashcards.length > 0
-		if (isChunkMode && activeChunkPool.length === 0) {
+		if (activeChunkPool.length === 0) {
 			console.warn('[aiGenerationClient] No remaining chunks to use after successful generations')
 			break
 		}
 
-		const chunkPoolIndex = isChunkMode
-			? chunkAttemptIndex % activeChunkPool.length
-			: null
-		const currentChunk = isChunkMode
-			? activeChunkPool[chunkPoolIndex]
-			: null
-		const sourceTextForAttempt = isChunkMode
-			? (currentChunk?.text || documentText)
-			: documentText
-
-		if (isChunkMode) {
-			chunkAttemptIndex++
-		}
+		const chunkPoolIndex = chunkAttemptIndex % activeChunkPool.length
+		const currentChunk = activeChunkPool[chunkPoolIndex]
+		const sourceTextForAttempt = currentChunk?.text || documentText
+		chunkAttemptIndex++
 
 		console.log('[aiGenerationClient] Attempt source selection:', {
 			attempt: attempts,
 			nextFlashcardNumber,
 			requiredQuestionType,
-			mode: isChunkMode ? 'chunk' : 'full-text',
-			chunkIndex: isChunkMode ? currentChunk?.index ?? null : null,
-			chunkLength: isChunkMode ? currentChunk?.text?.length ?? 0 : null,
+			chunkIndex: currentChunk?.index ?? null,
+			chunkLength: currentChunk?.text?.length ?? 0,
 			remainingChunkCount: activeChunkPool.length,
 			sourceTextLength: sourceTextForAttempt.length,
 		})
@@ -441,10 +429,6 @@ export async function generateFlashcardsFromDocumentText({
 			})
 
 			if (!flashcard) {
-				if (!forceChunkMode) {
-					forceChunkMode = true
-					console.log('[aiGenerationClient] Switching to chunk mode after failed attempt')
-				}
 				consecutiveFailures++
 				console.warn(
 					`[aiGenerationClient] Attempt ${attempts}: Failed to parse valid flashcard (consecutive failures: ${consecutiveFailures})`
@@ -470,13 +454,11 @@ export async function generateFlashcardsFromDocumentText({
 			}
 
 			allFlashcards.push(flashcard)
-			if (isChunkMode && chunkPoolIndex !== null) {
-				activeChunkPool.splice(chunkPoolIndex, 1)
-				console.log('[aiGenerationClient] Retired successful chunk from future attempts', {
-					retiredChunkIndex: currentChunk?.index ?? null,
-					remainingChunkCount: activeChunkPool.length,
-				})
-			}
+			activeChunkPool.splice(chunkPoolIndex, 1)
+			console.log('[aiGenerationClient] Retired successful chunk from future attempts', {
+				retiredChunkIndex: currentChunk?.index ?? null,
+				remainingChunkCount: activeChunkPool.length,
+			})
 			console.log(
 				`[aiGenerationClient] Generated flashcard ${allFlashcards.length}/${flashcardCount} on attempt ${attempts}`
 			)

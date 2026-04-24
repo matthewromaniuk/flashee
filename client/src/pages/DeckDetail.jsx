@@ -454,7 +454,7 @@ const DeckDetail = () => {
                     <Button danger loading={deletingDeck} onClick={deleteCurrentDeck}>Delete Deck</Button>
                   </>
                 ) : (
-                  <Button type="primary" loading={forking} onClick={forkCurrentDeck}>Fork Deck</Button>
+                  <Button type="primary" loading={forking} onClick={forkCurrentDeck}>Clone Deck</Button>
                 )}
                 <Button type={practiceMode ? 'primary' : 'default'} onClick={() => setPracticeMode((prev) => !prev)}>
                   Practice Mode
@@ -481,6 +481,7 @@ const DeckDetail = () => {
                 </Text>
                 <div style={{ width: '100%' }}>
                   <Flashcard
+                    key={currentFlashcard?.id ?? currentCardIndex}
                     frontContent={
                       <>
                         <h3>Question</h3>
