@@ -21,3 +21,7 @@ INCLUDES:
 All front-end files are organized in the client folder. This includes assets, components, hooks, pages, and tests that can be found in their respective folder within the src folder.
 
 The back-end files are organized in the server folder. This includes all controllers, authorization/permission algorithms, AI integration, and database access.
+
+**Contributors**
+
+Flashee was designed by Madison Wiebe and Matthew Romaniuk.
