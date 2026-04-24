@@ -1,10 +1,10 @@
+//Extract text from various document formats (PDF, DOCX, PPTX, TXT)
 import path from 'path'
 import pdfParse from 'pdf-parse'
 import JSZip from 'jszip'
 
-/**
- * Extract text from a PDF buffer
- */
+
+//Extract text from a PDF buffer
 async function extractPdfText(buffer) {
 	try {
 		const data = await pdfParse(buffer)
@@ -14,10 +14,7 @@ async function extractPdfText(buffer) {
 	}
 }
 
-/**
- * Extract text from a DOCX buffer
- * DOCX is a ZIP file containing XML documents
- */
+//Extract text from a DOCX buffer
 async function extractDocxText(buffer) {
 	try {
 		const zip = new JSZip()
@@ -32,7 +29,6 @@ async function extractDocxText(buffer) {
 		const xmlContent = await docXml.async('string')
 
 		// Extract text from paragraphs and runs
-		// Simple regex-based extraction - matches <w:t>text</w:t> tags
 		const textMatches = xmlContent.match(/<w:t[^>]*>([^<]*)<\/w:t>/g) || []
 		const text = textMatches
 			.map((match) => match.replace(/<[^>]+>/g, ''))
@@ -44,10 +40,7 @@ async function extractDocxText(buffer) {
 	}
 }
 
-/**
- * Extract text from a PPTX buffer
- * PPTX is a ZIP file containing XML slides
- */
+//Extract text from a PPTX buffer
 async function extractPptxText(buffer) {
 	try {
 		const zip = new JSZip()
@@ -57,12 +50,10 @@ async function extractPptxText(buffer) {
 
 		// Iterate through slide files
 		for (const [filePath, file] of Object.entries(zip.files)) {
-			// Match slide files: ppt/slides/slide1.xml, ppt/slides/slide2.xml, etc.
 			if (filePath.match(/^ppt\/slides\/slide\d+\.xml$/)) {
 				const xmlContent = await file.async('string')
 
 				// Extract text from shapes and text runs
-				// Matches <a:t>text</a:t> tags
 				const textMatches = xmlContent.match(/<a:t[^>]*>([^<]*)<\/a:t>/g) || []
 				const slideText = textMatches
 					.map((match) => match.replace(/<[^>]+>/g, ''))
@@ -80,9 +71,8 @@ async function extractPptxText(buffer) {
 	}
 }
 
-/**
- * Extract text from a file buffer based on MIME type or file extension
- */
+
+//Extract text from a file buffer based on MIME type or file extension
 export async function extractTextFromFile(buffer, mimeType, fileName = '') {
 	// Determine format from MIME type or file extension
 	const format = mimeType?.toLowerCase() || ''

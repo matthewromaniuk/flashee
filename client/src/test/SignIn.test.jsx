@@ -1,3 +1,4 @@
+//Test for SignIn component, verifying that form renders correctly and that submitting with valid credentials makes the appropriate API call
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';

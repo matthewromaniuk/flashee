@@ -1,12 +1,14 @@
+//Seeds data for developing and testing the app, generating courses, decks, and flashcards
 import { supabase } from '../lib/supabaseClient.js'
 import { generateInt64Id } from '../lib/int64Id.js'
 
-const SEED_USER_EMAIL = process.env.SEED_USER_EMAIL || 'romaniukmatthew@gmail.com'
-const COURSES_TO_CREATE = Number.parseInt(process.env.SEED_COURSE_COUNT || '8', 10)
-const DECKS_PER_COURSE = Number.parseInt(process.env.SEED_DECKS_PER_COURSE || '4', 10)
-const FLASHCARDS_PER_DECK = Number.parseInt(process.env.SEED_FLASHCARDS_PER_DECK || '6', 10)
-const EXTRA_PUBLIC_DECKS = Number.parseInt(process.env.SEED_EXTRA_PUBLIC_DECKS || '6', 10)
+const SEED_USER_EMAIL = ''
+const COURSES_TO_CREATE = 8
+const DECKS_PER_COURSE = 4
+const FLASHCARDS_PER_DECK = 6
+const EXTRA_PUBLIC_DECKS = 10
 
+//Lists of sample data to generate course, deck, and flashcard namees
 const courseTopics = [
   'Biology',
   'Chemistry',
@@ -47,6 +49,7 @@ const deckPrefixes = [
   'Term Builder',
 ]
 
+//Helper functions to generate course, deck, and flashcard names based on index
 function pick(list, index) {
   return list[index % list.length]
 }
@@ -67,6 +70,7 @@ function buildAnswer(courseName, deckName, questionIndex) {
   return `Reference answer ${questionIndex + 1} for ${courseName} in ${deckName}.`
 }
 
+//Cleans up existing data to ensure consistent state before seeding new data
 async function cleanupSeededData(userEmail) {
   const { data: courseLinks, error: courseLinkError } = await supabase
     .from('course_user')
@@ -148,6 +152,7 @@ async function cleanupSeededData(userEmail) {
   }
 }
 
+//Main seeding function to create courses, decks, and flashcards
 async function seed() {
   console.log(`[seed] Seeding data for ${SEED_USER_EMAIL}`)
   await cleanupSeededData(SEED_USER_EMAIL)
@@ -258,6 +263,7 @@ async function seed() {
   console.log(`[seed] Done. Inserted ${courses.length} courses, ${decks.length} decks, ${flashcards.length} flashcards.`)
 }
 
+//Execute the seeding function and handle success or failure
 seed()
   .then(() => {
     process.exit(0)

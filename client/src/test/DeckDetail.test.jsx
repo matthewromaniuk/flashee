@@ -1,3 +1,4 @@
+//Test for DeckDetail component, verifying that the deck details are rendered correctly and that advancing to the next flashcard after marking one correct works as expected.
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import DeckDetail from '../pages/DeckDetail';

@@ -1,3 +1,4 @@
+//Course access control logic
 import { supabase } from './supabaseClient.js'
 
 export async function getCourseRole(courseId, userEmail) {

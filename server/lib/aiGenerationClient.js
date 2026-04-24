@@ -1,3 +1,4 @@
+//AI flashcard generation client using local Ollama model
 const DEFAULT_OLLAMA_HOST = process.env.OLLAMA_HOST || 'http://127.0.0.1:11434'
 const DEFAULT_OLLAMA_GENERATE_URL = process.env.OLLAMA_GENERATE_URL || `${DEFAULT_OLLAMA_HOST.replace(/\/$/, '')}/api/generate`
 const DEFAULT_MODEL = process.env.OLLAMA_MODEL || 'mistral:7b-instruct'
@@ -36,6 +37,7 @@ function buildSystemPrompt() {
 		`Prefer a meaningfully different concept or angle each time. ` 
 }
 
+//Rotates between no requirement, multiple-choice, and true/false question
 function getRequiredQuestionTypeForAttempt(attemptNumber) {
 	const rotationIndex = (attemptNumber - 1) % 3
 
@@ -50,6 +52,7 @@ function getRequiredQuestionTypeForAttempt(attemptNumber) {
 	return null
 }
 
+//Build the prompt including the main system instructions, keywords, previous flashcards, and any modifiers for question type
 function buildPrompt(sourceText, keywords = [], previousFlashcards = [], requiredQuestionType = null) {
 	const nextFlashcardNumber = previousFlashcards.length + 1
 	const normalizedKeywords = normalizeKeywords(keywords)
@@ -101,6 +104,7 @@ function buildPrompt(sourceText, keywords = [], previousFlashcards = [], require
 	].join('\n')
 }
 
+//Extracts the first valid JSON object or array from a string, if present
 function extractJsonFromString(value) {
 	if (typeof value !== 'string') {
 		return null
@@ -121,6 +125,7 @@ function extractJsonFromString(value) {
 	return null
 }
 
+//Attempts to parse JSON from a string
 function tryParseJson(value) {
 	if (typeof value !== 'string') {
 		return null
@@ -138,6 +143,7 @@ function tryParseJson(value) {
 	}
 }
 
+//Selects the generated text from the LLM response, handling different possible response formats
 function selectGeneratedText(result) {
 	if (typeof result?.generated_text === 'string') {
 		return result.generated_text
@@ -158,6 +164,7 @@ function selectGeneratedText(result) {
 	return ''
 }
 
+//Runs inference against the local Ollama model with a timeout and error handling
 async function runLocalInference({
 	model,
 	systemPrompt,
@@ -215,6 +222,7 @@ async function runLocalInference({
 	return response.json()
 }
 
+//trims flashcard question and answer, ensures they are non-empty strings, and returns null if invalid
 function normalizeFlashcard(entry) {
 	if (!entry || typeof entry !== 'object') {
 		return null
@@ -230,22 +238,24 @@ function normalizeFlashcard(entry) {
 	return null
 }
 
-function isTrueFalseAnswer(value) {
+//Determines if a flashcard answer should be treated as a short, fixed-choice answer.
+function isFixedChoiceAnswer(value) {
 	if (typeof value !== 'string') {
 		return false
 	}
 
 	const normalized = value.trim().toLowerCase()
-	return normalized === 'true' || normalized === 'false'
+	return normalized === 'true' || normalized === 'false' || ['a', 'b', 'c', 'd'].includes(normalized)
 }
 
+//Determines if two flashcards are the same
 function areSameFlashcard(card1, card2) {
 	if (!card1 || !card2) {
 		return false
 	}
 
-	// Allow true/false cards to repeat answers without being rejected as duplicates.
-	if (isTrueFalseAnswer(card1.answer) || isTrueFalseAnswer(card2.answer)) {
+	// Allow true/false and multiple-choice cards to repeat short answers without being rejected as duplicates.
+	if (isFixedChoiceAnswer(card1.answer) || isFixedChoiceAnswer(card2.answer)) {
 		return false
 	}
 
@@ -255,6 +265,7 @@ function areSameFlashcard(card1, card2) {
 	)
 }
 
+//Parses the LLM response JSON into a flashcard object, ensuring it has the correct structure and content
 function parseFlashcardsFromJson(jsonData) {
 	if (Array.isArray(jsonData)) {
 		return jsonData
@@ -266,6 +277,7 @@ function parseFlashcardsFromJson(jsonData) {
 	return singleFlashcard ? [singleFlashcard] : []
 }
 
+//Splits input text into chunks of a specified size, trying to split on paragraph boundaries when possible
 function splitTextIntoChunks(text, chunkSize = DEFAULT_CHUNK_SIZE) {
 	if (!text || text.trim().length === 0) {
 		return []
@@ -315,6 +327,7 @@ function splitTextIntoChunks(text, chunkSize = DEFAULT_CHUNK_SIZE) {
 	return chunks
 }
 
+//Builds an array of text chunks to use as sources for flashcard generation attempts
 function buildChunksForFlashcardTarget(text, flashcardCount) {
 	if (!text || text.trim().length === 0) {
 		return []
@@ -330,6 +343,7 @@ function buildChunksForFlashcardTarget(text, flashcardCount) {
 	return chunks.length > 0 ? chunks : [text]
 }
 
+//Generates a single flashcard from the document text and other parameters, returning null if generation or parsing fails
 async function generateSingleFlashcard({
 	documentText,
 	keywords = [],
@@ -365,6 +379,7 @@ async function generateSingleFlashcard({
 	return flashcards.length > 0 ? flashcards[0] : null
 }
 
+//Main function to generate flashcards from document text, with retries, chunking, and progress reporting
 export async function generateFlashcardsFromDocumentText({
 	documentText,
 	keywords = [],

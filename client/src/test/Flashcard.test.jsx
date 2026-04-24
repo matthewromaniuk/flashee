@@ -1,3 +1,4 @@
+// Test for Flashcard component, verifying that the card flips correctly and resets to the question side when moving to the next card.
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import Flashcard from '../components/Flashcard';

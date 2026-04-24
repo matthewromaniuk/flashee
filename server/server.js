@@ -1,4 +1,4 @@
-//
+//Express server setup with routes and controllers
 import express from "express";
 import multer from 'multer';
 
@@ -34,7 +34,7 @@ import {
   updateFlashcard,
 } from './controllers/flashcardController.js';
 
-
+//Initializes Express App and configures routers
 const app = express();
 const PORT = Number.parseInt(process.env.PORT || '3001', 10);
 
@@ -70,10 +70,8 @@ const upload = multer({
 });
 
 //sets up routes for each controller
-
 authRouter.post('/sign-up', signUp);
 authRouter.post('/sign-in', signIn);
-//auth functions
 
 // For AI flashcard endpoint, support both JSON and multipart file uploads
 aiRouter.post(
@@ -89,6 +87,7 @@ aiRouter.post(
   createAiFlashcardsStream,
 );
 
+//Deck functions
 deckRouter.get('/user/:userId', getDecksByUserEmail);
 deckRouter.get('/public', getPublicDecks);
 deckRouter.get('/:id', getDeckById);
@@ -98,15 +97,15 @@ deckRouter.post('/:id/fork', forkDeck);
 deckRouter.patch('/:id', updateDeck);
 deckRouter.delete('/:id', deleteDeck);
 deckRouter.use('/:deckId/flashcards', flashcardRouter);
-//deck functions
 
+//Course functions
 courseRouter.get('/user/:userId', getCoursesByUserId);
 courseRouter.get('/public', getPublicCourses);
 courseRouter.post('/', createCourse);
 courseRouter.patch('/:id', updateCourse);
 courseRouter.delete('/:id', deleteCourse);
-//course functions
 
+//Flashcard functions
 flashcardRouter.get('/', listFlashcards);
 flashcardRouter.post('/', createFlashcard);
 flashcardRouter.post('/bulk', bulkCreateFlashcards);
@@ -114,8 +113,8 @@ flashcardRouter.get('/:flashcardId', getFlashcard);
 flashcardRouter.patch('/:flashcardId', updateFlashcard);
 flashcardRouter.patch('/:flashcardId/status', updateFlashcardStatus);
 flashcardRouter.delete('/:flashcardId', deleteFlashcard);
-//flashcard functions
 
+//Mount routers on the app
 app.use('/api/auth', authRouter);
 app.use('/api/ai', aiRouter);
 app.use('/api/decks', deckRouter);
@@ -123,14 +122,12 @@ app.use('/api/courses', courseRouter);
 
 
 
-app.get("/decks", (_, response) =>
-  response.json({ info: "This endpoint will return all decks" })
-);
-
+//Basic route to verify server is running
 app.get("/", (_, response) =>
   response.json({ info: "Express app with Supabase" })
 );
 
+//Starts the server and listens on the specified port, with error handling
 const server = app.listen(PORT, () =>
   console.log(
     new Date().toLocaleTimeString() + `: Server is running on port ${PORT}...`

@@ -1,12 +1,13 @@
+//Supabase client setup, loads environment variables from root .env file and initializes Supabase client instance
 import dotenv from 'dotenv'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import { createClient } from '@supabase/supabase-js'
 
+
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
-// Always load environment variables from repository root .env
 dotenv.config({ path: path.resolve(__dirname, '../../.env') })
 
 const SUPABASE_URL = process.env.SUPABASE_URL

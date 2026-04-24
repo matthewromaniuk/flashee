@@ -1,3 +1,4 @@
+//Test for Workspace component, verifying that the workspace shell and empty states render correctly, and that navigation works as expected when clicking on deck and course cards and loggging out.
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import Workspace from '../pages/Workspace';

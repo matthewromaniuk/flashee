@@ -1,8 +1,10 @@
+//Controller for course-related endpoints, handling CRUD operations and access control based on user roles
 import { supabase } from '../lib/supabaseClient.js'
 import { generateInt64Id } from '../lib/int64Id.js'
 import { canWrite, getRequesterEmail, isOwner } from '../lib/deckPermissions.js'
 import { getCourseRole } from '../lib/courseAccess.js'
 
+//Fetch courses that the user has access to, along with their roles
 export async function getCoursesByUserId(req, res) {
   const { userId } = req.params
   const requesterUserId = req.headers['x-user-id']
@@ -36,6 +38,7 @@ export async function getCoursesByUserId(req, res) {
   return res.status(200).json({ courses })
 }
 
+//Fetch public courses that anyone can access, without requiring authentication
 export async function getPublicCourses(req, res) {
   const { data, error } = await supabase
     .from('course')
@@ -49,6 +52,7 @@ export async function getPublicCourses(req, res) {
   return res.status(200).json({ courses: data ?? [] })
 }
 
+//Create Course for User
 export async function createCourse(req, res) {
   const payload = req.body ?? {}
   const requesterEmail = getRequesterEmail(req)
@@ -106,6 +110,7 @@ export async function createCourse(req, res) {
   return res.status(201).json({ course: { ...createdCourse, id: courseId } })
 }
 
+//Update course details, check permissions
 export async function updateCourse(req, res) {
   const { id } = req.params
   const requesterEmail = getRequesterEmail(req)
@@ -160,6 +165,7 @@ export async function updateCourse(req, res) {
   return res.status(200).json({ course: data[0] })
 }
 
+//Delete course, only owner can delete
 export async function deleteCourse(req, res) {
   const { id } = req.params
   const requesterEmail = getRequesterEmail(req)

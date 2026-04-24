@@ -1,12 +1,14 @@
-
+//Controller for handling AI flahcard generation requests
 import { generateFlashcardsFromDocumentText } from '../lib/aiGenerationClient.js'
 import { extractTextFromFile } from '../lib/documentExtractor.js'
 
+// Define limits and defaults for file uploads and flashcard generation
 const MAX_UPLOAD_BYTES = 25 * 1024 * 1024
 const DEFAULT_FLASHCARD_COUNT = 10
 const MIN_FLASHCARD_COUNT = 1
 const MAX_FLASHCARD_COUNT = 50
 
+// Helper functions for parsing and validating input
 function parseFlashcardCount(value) {
   const parsed = Number.parseInt(String(value ?? ''), 10)
   if (!Number.isFinite(parsed)) {
@@ -41,6 +43,7 @@ function parseKeywordsFromBody(body) {
   return []
 }
 
+//Extracts text content and parameters from the request
 function extractTextPayload(req) {
   const body = req.body ?? {}
 
@@ -58,6 +61,7 @@ function extractTextPayload(req) {
   }
 }
 
+//Main handler for AI flashcard generation
 export function createAiFlashcardHandler(generate = generateFlashcardsFromDocumentText) {
   return async function aiFlashcards(req, res) {
     console.log('[aiController] Incoming /api/ai/flashcards request')
@@ -65,7 +69,7 @@ export function createAiFlashcardHandler(generate = generateFlashcardsFromDocume
     let documentText = null
     let payload = null
 
-    // Try to extract documentText from JSON body first (existing flow)
+    // Try to extract documentText from JSON body first
     payload = extractTextPayload(req)
 
     // If not from JSON, try to extract from multipart file upload
@@ -163,6 +167,8 @@ export function createAiFlashcardHandler(generate = generateFlashcardsFromDocume
   }
 }
 
+
+//Streaming for sending progress updates and results incrementally
 export function createAiFlashcardsStreamHandler(generate = generateFlashcardsFromDocumentText) {
   return async function aiFlashcardsStream(req, res) {
     console.log('[aiController-stream] Incoming /api/ai/flashcards-stream request')

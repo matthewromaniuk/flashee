@@ -1,3 +1,4 @@
+//Test for Home component, verifying that the landing page renders correctly and that navigation to signup and signin pages works as expected.
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';

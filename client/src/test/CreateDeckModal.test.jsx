@@ -1,3 +1,4 @@
+//Test for CreateDeckModal component, verifying that a deck with one flashcard can be created and the appropriate API callas are made.
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import CreateDeckModal from '../components/CreateDeckModal';

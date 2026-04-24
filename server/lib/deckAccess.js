@@ -1,6 +1,8 @@
+//Deck access control logic
 import { supabase } from './supabaseClient.js'
 import { canRead, canWrite, getDeckRole, getRequesterEmail } from './deckPermissions.js'
 
+//Deck access control logic
 export async function getDeckAccessContext(deckId) {
   const { data, error } = await supabase
     .from('deck')

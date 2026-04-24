@@ -1,4 +1,4 @@
-// Custom hook for fetching and managing deck details
+// Custom hook for fetching and managing deck and flashcard details
 import { useCallback, useEffect, useState } from 'react';
 import { message } from 'antd';
 import { getStoredUserContext } from '../lib/session.js';

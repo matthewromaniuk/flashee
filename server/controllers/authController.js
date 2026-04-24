@@ -2,6 +2,7 @@ import { supabase } from '../lib/supabaseClient.js'
 
 const MIN_PASSWORD_LENGTH = 8
 
+//Helper function to build sign-up options, including email redirect and user metadata
 function buildSignUpOptions(fullName) {
   const options = {}
   const redirectUrl = process.env.SUPABASE_CONFIRM_URL
@@ -20,6 +21,7 @@ function buildSignUpOptions(fullName) {
   return options
 }
 
+//Sign-up handler, validates input and creates a new user in Supabase Auth
 export function createSignUpHandler(client = supabase) {
   return async function signUp(req, res) {
     const { email, password, fullName } = req.body ?? {}
@@ -65,6 +67,7 @@ export function createSignUpHandler(client = supabase) {
 
 export const signUp = createSignUpHandler()
 
+//create sign-in handler, validates input and authenticates user with Supabase Auth
 export function createSignInHandler(client = supabase) {
   return async function signIn(req, res) {
     const { email, password } = req.body ?? {}

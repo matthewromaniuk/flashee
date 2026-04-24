@@ -1,3 +1,4 @@
+//Configuring of testing environment for React components
 import '@testing-library/jest-dom';
 import { afterEach, beforeEach, vi } from 'vitest';
 import { mockLocation, mockNavigate, mockParams } from './routerMocks.js';

@@ -1,6 +1,8 @@
+//Deck forking logic
 import { supabase } from './supabaseClient.js'
 import { generateInt64Id } from './int64Id.js'
 
+//Fork a deck by its ID, creating a new deck with the same content and assigning ownership to the requester
 export async function forkDeckById({ id, requesterEmail }) {
   const { data: sourceDeck, error: fetchError } = await supabase
     .from('deck')

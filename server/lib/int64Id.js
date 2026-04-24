@@ -1,10 +1,11 @@
+//Generates int8 (8-bytes) random ID for deck and flashcard ids
 import { randomBytes } from 'crypto'
 
-// Keep generated IDs inside JS safe integer bounds to avoid precision loss in client/server JSON.
+// Keep generated IDs inside JS safe integer bounds
 const MAX_SAFE_INT53 = BigInt(Number.MAX_SAFE_INTEGER)
 
 
-//Generates int8 (8-bytes) random ID for deck and flashcard ids
+
 export function generateInt64Id() {
   const buffer = randomBytes(8)
   buffer[0] &= 0x1f

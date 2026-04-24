@@ -1,7 +1,9 @@
+//Controller functions for handling flashcard-related API endpoints
 import { supabase } from '../lib/supabaseClient.js'
 import { generateInt64Id } from '../lib/int64Id.js'
 import { authorizeDeckAccess } from '../lib/deckAccess.js'
 
+//List flashcards for a deck
 export async function listFlashcards(req, res) {
 	const { deckId } = req.params
 
@@ -51,6 +53,7 @@ export async function listFlashcards(req, res) {
 	return res.status(200).json({ flashcards: flashcardsWithStatus })
 }
 
+//Create a new flashcard in a deck
 export async function createFlashcard(req, res) {
 	const { deckId } = req.params
 	const payload = req.body ?? {}
@@ -117,6 +120,7 @@ export async function createFlashcard(req, res) {
 	})
 }
 
+//Bulk create flashcards in a deck, takes in array of JSON flashcard objects in the request body
 export async function bulkCreateFlashcards(req, res) {
 	const { deckId } = req.params
 	const { flashcards } = req.body ?? {}
@@ -178,6 +182,7 @@ export async function bulkCreateFlashcards(req, res) {
 	return res.status(201).json({ flashcards: createdFlashcards })
 }
 
+//Update the isCorrect status for a flashcard for the requesting user
 export async function updateFlashcardStatus(req, res) {
 	const { deckId, flashcardId } = req.params
 	const { isCorrect } = req.body ?? {}
@@ -231,6 +236,7 @@ export async function updateFlashcardStatus(req, res) {
 	return res.status(200).json({ status: statusRows?.[0] ?? null })
 }
 
+//Get details of a single flashcard
 export async function getFlashcard(req, res) {
 	const { deckId, flashcardId } = req.params
 
@@ -259,6 +265,7 @@ export async function getFlashcard(req, res) {
 	return res.status(200).json({ flashcard: data })
 }
 
+//Update flashcard details like question or answer
 export async function updateFlashcard(req, res) {
 	const { deckId, flashcardId } = req.params
 	const payload = req.body ?? {}
@@ -298,6 +305,7 @@ export async function updateFlashcard(req, res) {
 	return res.status(200).json({ flashcard: data[0] })
 }
 
+//Delete a flashcard from a deck
 export async function deleteFlashcard(req, res) {
 	const { deckId, flashcardId } = req.params
 

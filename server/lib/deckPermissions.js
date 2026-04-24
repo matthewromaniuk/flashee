@@ -1,3 +1,4 @@
+//Deck permissions management
 import { supabase } from './supabaseClient.js'
 
 const READ_ROLES = new Set(['viewer', 'editor', 'owner'])
@@ -16,6 +17,7 @@ export function getRequesterEmail(req) {
   return null
 }
 
+//Fetch the user's role for a specific deck from the database
 export async function getDeckRole(deckId, userEmail) {
   const { data, error } = await supabase
     .from('deck_user')
@@ -38,6 +40,7 @@ export async function getDeckRole(deckId, userEmail) {
   return { role: match?.role ?? null, error: null }
 }
 
+//Check if the user's role allows them to read, write, or is owner of the deck
 export function canRead(role) {
   return READ_ROLES.has(role)
 }
