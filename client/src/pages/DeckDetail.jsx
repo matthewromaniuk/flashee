@@ -66,6 +66,8 @@ const DeckDetail = () => {
   const canUsePracticeMode = isOwner || !deckIsPublic
   const backTarget = location.state?.backTarget ?? null
   const backLabel = backTarget ? 'Back' : 'Back to Workspace'
+  const backPath = backTarget?.pathname ?? '/workspace'
+  const backState = backTarget?.state
 
   const visibleFlashcards = useMemo(() => {
     if (!practiceMode) {
@@ -458,7 +460,7 @@ const DeckDetail = () => {
               <Button
                 type="default"
                 icon={<ArrowLeftOutlined />}
-                onClick={() => navigate(backTarget?.pathname ?? '/workspace')}
+                onClick={() => navigate(backPath, { state: backState })}
               >
                 {backLabel}
               </Button>

@@ -56,6 +56,8 @@ const CourseDetail = () => {
   const titleText = course?.name ?? 'Course';
   const backTarget = location.state?.backTarget ?? null;
   const backLabel = backTarget ? 'Back' : 'Back to Workspace';
+  const backPath = backTarget?.pathname ?? '/workspace';
+  const backState = backTarget?.state;
 
   const openEditModal = () => {
     setRemovedDeckIds([]);
@@ -186,7 +188,7 @@ const CourseDetail = () => {
             <Flex align="center" justify="space-between" wrap gap={12}>
               <Button
                 type="default"
-                onClick={() => navigate(backTarget?.pathname ?? '/workspace')}
+                onClick={() => navigate(backPath, { state: backState })}
               >
                 {backLabel}
               </Button>
@@ -234,7 +236,7 @@ const CourseDetail = () => {
                     key={deck.id}
                     deck={deck}
                     onClick={() => navigate(`/workspace/${deck.id}`, {
-                      state: { backTarget: { pathname: location.pathname } },
+                      state: { backTarget: { pathname: location.pathname, state: location.state } },
                     })}
                   />
                 ))}
