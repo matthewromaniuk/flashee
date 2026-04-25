@@ -62,6 +62,23 @@ export async function forkDeckById({ id, requesterEmail }) {
       await supabase.from('deck').delete().eq('id', forkedDeckId)
       return { error: 'Failed to copy flashcards: ' + flashcardCreateError.message, status: 500 }
     }
+
+    const flashcardStatusRows = flashcardsToInsert.map((flashcard) => ({
+      user_email: requesterEmail,
+      deck_id: forkedDeckId,
+      flashcard_id: flashcard.id,
+      isCorrect: false,
+    }))
+
+    const { error: statusCreateError } = await supabase
+      .from('flashcard_status')
+      .insert(flashcardStatusRows)
+
+    if (statusCreateError) {
+      await supabase.from('flashcard').delete().eq('deck_id', forkedDeckId)
+      await supabase.from('deck').delete().eq('id', forkedDeckId)
+      return { error: 'Failed to initialize flashcard status: ' + statusCreateError.message, status: 500 }
+    }
   }
 
   const { error: relationError } = await supabase
@@ -73,6 +90,8 @@ export async function forkDeckById({ id, requesterEmail }) {
     })
 
   if (relationError) {
+    await supabase.from('flashcard_status').delete().eq('deck_id', forkedDeckId)
+    await supabase.from('flashcard').delete().eq('deck_id', forkedDeckId)
     await supabase.from('deck').delete().eq('id', forkedDeckId)
     return { error: 'Failed to set ownership: ' + relationError.message, status: 400 }
   }

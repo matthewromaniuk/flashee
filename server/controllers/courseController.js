@@ -115,6 +115,9 @@ export async function updateCourse(req, res) {
   const { id } = req.params
   const requesterEmail = getRequesterEmail(req)
   const payload = req.body ?? {}
+  const removeDeckIds = Array.isArray(payload.removeDeckIds)
+    ? [...new Set(payload.removeDeckIds.map((deckId) => String(deckId)).filter(Boolean))]
+    : []
 
   if (!id) {
     return res.status(400).json({ error: 'Path parameter "id" is required' })
@@ -144,25 +147,83 @@ export async function updateCourse(req, res) {
     updatePayload.isPublic = payload.isPublic
   }
 
-  if (Object.keys(updatePayload).length === 0) {
-    return res.status(400).json({ error: 'Provide at least one editable field (name, description, isPublic)' })
+  const deckIdsToDetach = removeDeckIds.length > 0
+    ? removeDeckIds
+    : []
+
+  if (Object.keys(updatePayload).length === 0 && deckIdsToDetach.length === 0) {
+    return res.status(400).json({ error: 'Provide at least one editable field (name, description, isPublic) or removeDeckIds' })
   }
 
-  const { data, error } = await supabase
-    .from('course')
-    .update(updatePayload)
-    .eq('id', id)
-    .select('*')
+  let detachedDecks = []
+  if (deckIdsToDetach.length > 0) {
+    const { data: decks, error: detachFetchError } = await supabase
+      .from('deck')
+      .select('id')
+      .eq('course_id', id)
+      .in('id', deckIdsToDetach)
 
-  if (error) {
-    return res.status(400).json({ error: error.message })
+    if (detachFetchError) {
+      return res.status(400).json({ error: detachFetchError.message })
+    }
+
+    detachedDecks = decks ?? []
+
+    const { error: detachError } = await supabase
+      .from('deck')
+      .update({ course_id: null })
+      .eq('course_id', id)
+      .in('id', deckIdsToDetach)
+
+    if (detachError) {
+      return res.status(400).json({ error: detachError.message })
+    }
   }
 
-  if (!data || data.length === 0) {
+  let courseData = null
+
+  if (Object.keys(updatePayload).length > 0) {
+    const { data, error } = await supabase
+      .from('course')
+      .update(updatePayload)
+      .eq('id', id)
+      .select('*')
+
+    if (error) {
+      if (detachedDecks.length > 0) {
+        const restoreIds = detachedDecks.map((deck) => deck.id)
+        await supabase
+          .from('deck')
+          .update({ course_id: id })
+          .in('id', restoreIds)
+      }
+      return res.status(400).json({ error: error.message })
+    }
+
+    courseData = data
+  } else {
+    const { data, error } = await supabase
+      .from('course')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle()
+
+    if (error) {
+      return res.status(400).json({ error: error.message })
+    }
+
+    if (!data) {
+      return res.status(404).json({ error: 'Course not found' })
+    }
+
+    courseData = [data]
+  }
+
+  if (!courseData || courseData.length === 0) {
     return res.status(404).json({ error: 'Course not found' })
   }
 
-  return res.status(200).json({ course: data[0] })
+  return res.status(200).json({ course: courseData[0] })
 }
 
 //Delete course, only owner can delete
@@ -187,6 +248,24 @@ export async function deleteCourse(req, res) {
     return res.status(403).json({ error: 'Only owners can delete courses' })
   }
 
+  const { data: decksToDetach, error: fetchDeckError } = await supabase
+    .from('deck')
+    .select('id')
+    .eq('course_id', id)
+
+  if (fetchDeckError) {
+    return res.status(400).json({ error: fetchDeckError.message })
+  }
+
+  const { error: detachError } = await supabase
+    .from('deck')
+    .update({ course_id: null })
+    .eq('course_id', id)
+
+  if (detachError) {
+    return res.status(400).json({ error: detachError.message })
+  }
+
   const { data, error } = await supabase
     .from('course')
     .delete()
@@ -194,6 +273,13 @@ export async function deleteCourse(req, res) {
     .select('*')
 
   if (error) {
+    const deckIds = (decksToDetach ?? []).map((deck) => deck.id)
+    if (deckIds.length > 0) {
+      await supabase
+        .from('deck')
+        .update({ course_id: id })
+        .in('id', deckIds)
+    }
     return res.status(400).json({ error: error.message })
   }
 

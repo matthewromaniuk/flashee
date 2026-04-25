@@ -9,6 +9,7 @@ export function useCourseDetailData(courseId) {
   const [courseDecks, setCourseDecks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [canEditCourse, setCanEditCourse] = useState(false);
+  const [canDeleteCourse, setCanDeleteCourse] = useState(false);
 
   const fetchCourseAndDecks = useCallback(async () => {
     if (!auth.userId || !auth.userEmail || !courseId) {
@@ -65,6 +66,7 @@ export function useCourseDetailData(courseId) {
 
       setCourse(selectedCourse ?? selectedPublicCourse ?? null);
       setCanEditCourse(Boolean(selectedCourse));
+      setCanDeleteCourse(selectedCourse?.role === 'owner');
       setCourseDecks(courseDeckSource.filter(
         (deck) => String(deck.course_id) === String(courseId)
       ));
@@ -84,6 +86,8 @@ export function useCourseDetailData(courseId) {
     courseDecks,
     loading,
     canEditCourse,
+    canDeleteCourse,
+    setCourseDecks,
     setCourse,
   };
 }

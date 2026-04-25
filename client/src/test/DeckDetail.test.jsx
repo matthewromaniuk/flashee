@@ -16,14 +16,15 @@ vi.mock('../lib/session.js', () => ({
 }));
 
 vi.mock('../components/Flashcard', () => ({
-  default: ({ frontContent, backContent, onPrevious, onNext, onMarkCorrect, onMarkIncorrect }) => (
+  default: ({ frontContent, backContent, onPrevious, onNext, onMarkCorrect, onMarkIncorrect, onEdit }) => (
     <div>
       <div>{frontContent}</div>
       <div>{backContent}</div>
       <button onClick={onPrevious}>Previous</button>
       <button onClick={onNext}>Next</button>
-      <button onClick={onMarkCorrect}>Correct</button>
-      <button onClick={onMarkIncorrect}>Incorrect</button>
+      {onEdit ? <button onClick={onEdit}>Edit</button> : null}
+      {onMarkCorrect ? <button onClick={onMarkCorrect}>Correct</button> : null}
+      {onMarkIncorrect ? <button onClick={onMarkIncorrect}>Incorrect</button> : null}
     </div>
   ),
 }));
@@ -82,5 +83,55 @@ describe('DeckDetail', () => {
     });
     expect(screen.getByText(/card 2 of 2/i)).toBeInTheDocument();
     expect(mockNavigate).not.toHaveBeenCalledWith('/signin');
+  });
+
+  it('shows practice mode for public decks owned by the user', () => {
+    mockParams.deckId = 'deck-2';
+    mockUseDeckDetailData.mockReturnValue({
+      deckName: 'Physics',
+      deckIsPublic: true,
+      flashcards: [
+        { id: 'flashcard-1', question: 'What is force?', answer: 'Mass times acceleration' },
+      ],
+      loading: false,
+      isOwner: true,
+      setDeckName: vi.fn(),
+      setDeckIsPublic: vi.fn(),
+      setFlashcards: vi.fn(),
+      refreshFlashcards: vi.fn(),
+    });
+
+    render(<DeckDetail />);
+
+    expect(screen.getByRole('heading', { name: 'Physics' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /practice mode/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /edit deck/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /delete deck/i })).toBeInTheDocument();
+  });
+
+  it('hides edit and status actions for public decks not owned by the user', () => {
+    mockParams.deckId = 'deck-3';
+    mockUseDeckDetailData.mockReturnValue({
+      deckName: 'History',
+      deckIsPublic: true,
+      flashcards: [
+        { id: 'flashcard-1', question: 'Who was the first president?', answer: 'George Washington' },
+      ],
+      loading: false,
+      isOwner: false,
+      setDeckName: vi.fn(),
+      setDeckIsPublic: vi.fn(),
+      setFlashcards: vi.fn(),
+      refreshFlashcards: vi.fn(),
+    });
+
+    render(<DeckDetail />);
+
+    expect(screen.getByRole('heading', { name: 'History' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /practice mode/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /edit deck/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /delete deck/i })).not.toBeInTheDocument();
+    expect(screen.queryAllByRole('button', { name: /^Correct$/ })).toHaveLength(0);
+    expect(screen.queryAllByRole('button', { name: /^Incorrect$/ })).toHaveLength(0);
   });
 });

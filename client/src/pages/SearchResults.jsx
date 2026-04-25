@@ -30,6 +30,9 @@ const SearchResults = () => {
     token: { colorBgContainer, headerBg },
   } = theme.useToken();
   const { yourCourses, yourDecks, publicCourses, publicDecks, loading } = useSearchResultsData(query);
+  const searchBackTarget = {
+    pathname: `/search?q=${encodeURIComponent(query)}`,
+  };
 
   const sections = [
     {
@@ -40,7 +43,7 @@ const SearchResults = () => {
         <CourseBubble
           key={course.id}
           course={course}
-          onClick={() => navigate(`/courses/${course.id}`)}
+          onClick={() => navigate(`/courses/${course.id}`, { state: { backTarget: searchBackTarget } })}
         />
       ),
     },
@@ -52,7 +55,7 @@ const SearchResults = () => {
         <DeckBubble
           key={deck.id}
           deck={deck}
-          onClick={() => navigate(`/workspace/${deck.id}`)}
+          onClick={() => navigate(`/workspace/${deck.id}`, { state: { backTarget: searchBackTarget } })}
         />
       ),
     },
@@ -64,7 +67,7 @@ const SearchResults = () => {
         <CourseBubble
           key={course.id}
           course={course}
-          onClick={() => navigate(`/courses/${course.id}`)}
+          onClick={() => navigate(`/courses/${course.id}`, { state: { backTarget: searchBackTarget } })}
         />
       ),
     },
@@ -76,7 +79,7 @@ const SearchResults = () => {
         <DeckBubble
           key={deck.id}
           deck={deck}
-          onClick={() => navigate(`/workspace/${deck.id}`)}
+          onClick={() => navigate(`/workspace/${deck.id}`, { state: { backTarget: searchBackTarget } })}
         />
       ),
     },

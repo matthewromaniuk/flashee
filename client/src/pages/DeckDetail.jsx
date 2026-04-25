@@ -1,6 +1,6 @@
 // Page for displaying deck details, including flashcards, practice mode, and editing capabilities
 import { useEffect, useMemo, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import {
   Button,
   Empty,
@@ -29,6 +29,7 @@ const { Title, Text } = Typography
 
 const DeckDetail = () => {
   const navigate = useNavigate()
+  const location = useLocation()
   const { deckId } = useParams()
   const [currentCardIndex, setCurrentCardIndex] = useState(0)
   const [practiceMode, setPracticeMode] = useState(false)
@@ -61,6 +62,11 @@ const DeckDetail = () => {
     refreshFlashcards,
   } = useDeckDetailData(deckId)
 
+  const canManageDeck = isOwner
+  const canUsePracticeMode = isOwner || !deckIsPublic
+  const backTarget = location.state?.backTarget ?? null
+  const backLabel = backTarget ? 'Back' : 'Back to Workspace'
+
   const visibleFlashcards = useMemo(() => {
     if (!practiceMode) {
       return flashcards
@@ -68,6 +74,12 @@ const DeckDetail = () => {
 
     return flashcards.filter((flashcard) => flashcard?.hasStatus === true && flashcard?.isCorrect === false)
   }, [flashcards, practiceMode])
+
+  useEffect(() => {
+    if (!canUsePracticeMode && practiceMode) {
+      setPracticeMode(false)
+    }
+  }, [canUsePracticeMode, practiceMode])
 
   useEffect(() => {
     if (visibleFlashcards.length === 0) {
@@ -443,22 +455,28 @@ const DeckDetail = () => {
         >
           <Flex vertical gap={20} style={{ width: '100%', maxWidth: 1160, margin: '8px auto 20px' }}>
             <Flex align="center" justify="space-between" wrap gap={10}>
-              <Button type="default" icon={<ArrowLeftOutlined />} onClick={() => navigate('/workspace')}>
-                Back to Workspace
+              <Button
+                type="default"
+                icon={<ArrowLeftOutlined />}
+                onClick={() => navigate(backTarget?.pathname ?? '/workspace')}
+              >
+                {backLabel}
               </Button>
               <Title level={3} style={{ margin: 0 }}>{deckName}</Title>
               <Flex gap="small" wrap>
-                {isOwner ? (
+                {canManageDeck ? (
                   <>
+                    {canUsePracticeMode ? (
+                      <Button type={practiceMode ? 'primary' : 'default'} onClick={() => setPracticeMode((prev) => !prev)}>
+                        Practice Mode
+                      </Button>
+                    ) : null}
                     <Button onClick={openDeckEdit}>Edit Deck</Button>
                     <Button danger loading={deletingDeck} onClick={deleteCurrentDeck}>Delete Deck</Button>
                   </>
                 ) : (
                   <Button type="primary" loading={forking} onClick={forkCurrentDeck}>Clone Deck</Button>
                 )}
-                <Button type={practiceMode ? 'primary' : 'default'} onClick={() => setPracticeMode((prev) => !prev)}>
-                  Practice Mode
-                </Button>
               </Flex>
             </Flex>
             <Text type="secondary">Flip cards, edit content, and mark each card correct or incorrect.</Text>
@@ -496,9 +514,13 @@ const DeckDetail = () => {
                     }
                     onPrevious={goToPreviousCard}
                     onNext={goToNextCard}
-                    onEdit={() => openEditModal(currentFlashcard)}
-                    onMarkCorrect={() => currentFlashcard && updateStatus(currentFlashcard.id, true)}
-                    onMarkIncorrect={() => currentFlashcard && updateStatus(currentFlashcard.id, false)}
+                    onEdit={canManageDeck ? () => openEditModal(currentFlashcard) : undefined}
+                    onMarkCorrect={
+                      canManageDeck ? () => currentFlashcard && updateStatus(currentFlashcard.id, true) : undefined
+                    }
+                    onMarkIncorrect={
+                      canManageDeck ? () => currentFlashcard && updateStatus(currentFlashcard.id, false) : undefined
+                    }
                     height={320}
                   />
                 </div>

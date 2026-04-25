@@ -1,6 +1,6 @@
 //Page for displaying course details, including assigned decks and course information. 
 import { useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import {
   Button,
   Empty,
@@ -28,8 +28,11 @@ const { Title, Text } = Typography;
 const CourseDetail = () => {
   const navigate = useNavigate();
   const { courseId } = useParams();
+  const location = useLocation();
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [savingEdit, setSavingEdit] = useState(false);
+  const [deletingCourse, setDeletingCourse] = useState(false);
+  const [removedDeckIds, setRemovedDeckIds] = useState([]);
   const [editForm] = Form.useForm();
 
   const {
@@ -41,12 +44,21 @@ const CourseDetail = () => {
     courseDecks,
     loading,
     canEditCourse,
+    canDeleteCourse,
+    setCourseDecks,
     setCourse,
   } = useCourseDetailData(courseId);
 
+  const editableCourseDecks = courseDecks.filter(
+    (deck) => !removedDeckIds.includes(String(deck.id))
+  );
+
   const titleText = course?.name ?? 'Course';
+  const backTarget = location.state?.backTarget ?? null;
+  const backLabel = backTarget ? 'Back' : 'Back to Workspace';
 
   const openEditModal = () => {
+    setRemovedDeckIds([]);
     editForm.setFieldsValue({
       name: course?.name ?? '',
       description: course?.description ?? '',
@@ -58,6 +70,7 @@ const CourseDetail = () => {
   const closeEditModal = () => {
     setIsEditOpen(false);
     editForm.resetFields();
+    setRemovedDeckIds([]);
   };
 
   const saveCourseEdit = async () => {
@@ -81,6 +94,7 @@ const CourseDetail = () => {
           name: values.name,
           description: values.description,
           isPublic: values.isPublic,
+          removeDeckIds: removedDeckIds,
         }),
       });
 
@@ -94,12 +108,46 @@ const CourseDetail = () => {
         ...(prev ?? {}),
         ...(result.course ?? {}),
       }));
+      if (removedDeckIds.length > 0) {
+        setCourseDecks((prev) => prev.filter(
+          (deck) => !removedDeckIds.includes(String(deck.id))
+        ));
+      }
       message.success('Course updated');
       closeEditModal();
     } catch {
       // Form validation handles user feedback.
     } finally {
       setSavingEdit(false);
+    }
+  };
+
+  const deleteCourse = async () => {
+    const userEmail = localStorage.getItem('flashee_user_email');
+    if (!userEmail || !courseId) {
+      message.error('No signed-in user found. Please sign in again.');
+      return;
+    }
+
+    try {
+      setDeletingCourse(true);
+      const response = await fetch(`/api/courses/${courseId}`, {
+        method: 'DELETE',
+        headers: {
+          'x-user-email': userEmail,
+        },
+      });
+
+      const result = await response.json();
+      if (!response.ok) {
+        message.error(result.error || 'Could not delete course');
+        return;
+      }
+
+      message.success('Course deleted');
+      navigate('/workspace');
+    } finally {
+      setDeletingCourse(false);
     }
   };
 
@@ -136,8 +184,11 @@ const CourseDetail = () => {
         >
           <Flex vertical gap={18}>
             <Flex align="center" justify="space-between" wrap gap={12}>
-              <Button type="default" onClick={() => navigate('/workspace')}>
-                Back to Workspace
+              <Button
+                type="default"
+                onClick={() => navigate(backTarget?.pathname ?? '/workspace')}
+              >
+                {backLabel}
               </Button>
               <Title level={3} style={{ margin: 0, textAlign: 'center', flex: 1 }}>
                 {titleText}
@@ -146,6 +197,11 @@ const CourseDetail = () => {
                 <Button type="default" onClick={openEditModal} disabled={!course || !canEditCourse}>
                   Edit Course
                 </Button>
+                {canDeleteCourse ? (
+                  <Button danger loading={deletingCourse} onClick={deleteCourse} disabled={!course}>
+                    Delete Course
+                  </Button>
+                ) : null}
               </Flex>
             </Flex>
 
@@ -177,7 +233,9 @@ const CourseDetail = () => {
                   <DeckBubble
                     key={deck.id}
                     deck={deck}
-                    onClick={() => navigate(`/workspace/${deck.id}`)}
+                    onClick={() => navigate(`/workspace/${deck.id}`, {
+                      state: { backTarget: { pathname: location.pathname } },
+                    })}
                   />
                 ))}
               </div>
@@ -219,6 +277,45 @@ const CourseDetail = () => {
                   <Radio value={true}>Public</Radio>
                 </Radio.Group>
               </Form.Item>
+
+              <div style={{ marginTop: 16 }}>
+                <Text strong>Assigned Decks</Text>
+                <div style={{ marginTop: 12, display: 'grid', gap: 12 }}>
+                  {editableCourseDecks.length === 0 ? (
+                    <Empty description="No decks assigned to this course" />
+                  ) : (
+                    editableCourseDecks.map((deck) => (
+                      <Flex
+                        key={deck.id}
+                        align="center"
+                        justify="space-between"
+                        gap={12}
+                        style={{
+                          border: '1px solid rgba(0,0,0,0.08)',
+                          borderRadius: 12,
+                          padding: '10px 12px',
+                        }}
+                      >
+                        <div>
+                          <Text strong>{deck.name}</Text>
+                          <div>
+                            <Text type="secondary">
+                              {deck.description?.trim() || 'Deck'}
+                            </Text>
+                          </div>
+                        </div>
+                        <Button
+                          danger
+                          type="text"
+                          onClick={() => setRemovedDeckIds((prev) => [...prev, String(deck.id)])}
+                        >
+                          Remove
+                        </Button>
+                      </Flex>
+                    ))
+                  )}
+                </div>
+              </div>
             </Form>
           </Modal>
         </Content>
